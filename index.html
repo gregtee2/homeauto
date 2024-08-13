@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LiteGraph Example Integration</title>
+    <link rel="stylesheet" type="text/css" href="css/litegraph.css">
+    <link rel="stylesheet" type="text/css" href="css/litegraph-editor.css">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #main {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        #graphcanvas {
+            width: 100%;
+            height: 100%;
+        }
+        #lightList {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            width: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            display: none; /* Initially hidden */
+            z-index: 5;
+        }
+        #toggleButton {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            padding: 10px;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 10px; /* Space between buttons */
+        }
+        #controls button {
+            padding: 10px;
+        }
+        #fileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <canvas id="graphcanvas"></canvas>
+        <div id="lightList"></div>
+        <button id="toggleButton" onclick="toggleLightList()">Toggle Light List</button>
+        <div id="controls">
+            <button id="saveGraphBtn">Save Graph</button>
+            <button id="loadGraphBtn">Load Graph</button>
+            <input type="file" id="fileInput" accept=".json">
+            <input type="file" id="fileInput" style="display: none;">
+        </div>
+    </div>
+
+    <!-- Moved scripts to the end of the body to ensure elements are fully loaded -->
+    <script src="js/litegraph.js"></script>
+    <script src="js/litegraph-editor.js"></script>
+    <script src="js/defaults.js"></script>
+    <script src="custom_nodes/hue_light_node.js"></script>
+    <script src="custom_nodes/pushbutton_node.js"></script>
+    <script src="custom_nodes/trigger_node.js"></script>
+    <script src="custom_nodes/hsv_control_node.js"></script>
+    <script src="custom_nodes/timer_trigger_node.js"></script>
+    <script src="custom_nodes/light_group_node.js"></script>
+    <script src="js/initializeGraph.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
+
+    <script>
+        function toggleLightList() {
+            const lightList = document.getElementById('lightList');
+            if (lightList.style.display === 'none') {
+                fetchLights();
+            } else {
+                lightList.style.display = 'none';
+            }
+        }
+
+        function fetchLights() {
+            fetch('http://localhost:5000/api/lights')
+                .then(response => response.json())
+                .then(data => {
+                    const lightList = document.getElementById('lightList');
+                    lightList.innerHTML = '';
+                    for (const [name, info] of Object.entries(data)) {
+                        const button = document.createElement('button');
+                        button.innerText = name;
+                        button.onclick = () => addLightNode(info.id, name);
+                        lightList.appendChild(button);
+                    }
+                    lightList.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching lights:', error);
+                });
+        }
+
+        function addLightNode(lightId, lightName) {
+            const node = LiteGraph.createNode('custom/hue_light');
+            console.log('Node created:', node);  // This should log the node object
+            if (!node) {
+                console.error("Failed to create node 'custom/hue_light'");
+                return;
+            }
+            node.pos = [Math.random() * 800, Math.random() * 600];
+            node.properties.light_id = lightId;
+            node.title = lightName;
+            graph.add(node);
+        }
+
+        // Save Graph with custom name
+        document.getElementById("saveGraphBtn").addEventListener("click", function () {
+            const fileName = prompt("Enter a file name to save the graph:", "graph_data");
+            if (fileName) {
+                const graphData = JSON.stringify(graph.serialize());
+                fetch(`http://127.0.0.1:5000/api/saveGraph`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ graph: graphData, filename: fileName })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Failed to save graph');
+                    }
+                })
+                .then(data => {
+                    console.log("Graph saved successfully:", data);
+                })
+                .catch(error => {
+                    console.error("Error saving graph:", error);
+                });
+            }
+        });
+
+        // Load Graph from file input
+        document.getElementById("loadGraphBtn").addEventListener("click", function () {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const graphData = e.target.result;
+                    try {
+                        graph.clear();
+                        graph.configure(JSON.parse(graphData));
+                        console.log("Graph loaded successfully from file");
+                    } catch (err) {
+                        console.error("Error loading graph from file:", err);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+    </script>
+</body>
+</html>
