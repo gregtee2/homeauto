@@ -276,7 +276,7 @@ textarea {
 
 #toggleButton, #saveGraphBtn, #loadGraphBtn {
     background-color: rgb(102, 102, 102); /* This is equivalent to #666 */
-    color: rgb(164, 192, 184); /* White text */
+    color: rgb(177, 177, 177); /* White text */
     border: none; /* Removes default border */
     padding: 10px; /* Adjust padding */
     margin: 5px; /* Adjust margin */
