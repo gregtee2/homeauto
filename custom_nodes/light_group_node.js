@@ -35,8 +35,14 @@ class LightGroupNode extends LiteGraph.LGraphNode {
                 // Process the lights and update the availableLights list
                 this.availableLights = Object.entries(data).map(([name, info]) => ({
                     title: name,
-                    properties: { light_id: info.id }
+                    properties: { 
+                        light_id: info.id, 
+                        bridge_ip: "192.168.1.39",  // Use the bridge_ip from your config
+                        api_key: "slMTFvqVvFbReK3e2UwrKx2HfaKqxiUymbZ-Bdlk"  // Use the api_key from your config
+                    }
                 }));
+
+                console.log("Available lights fetched:", this.availableLights);
 
                 // Update the first light selection widget with the available lights
                 this.updateLightSelectionWidget(0);
@@ -76,6 +82,7 @@ class LightGroupNode extends LiteGraph.LGraphNode {
         const lightNode = this.availableLights.find(light => light.title === lightTitle);
         if (lightNode && !this.selectedLights.includes(lightNode)) {
             this.selectedLights.push(lightNode); // Add to selected lights
+            console.log("Selected lights:", this.selectedLights);
 
             // Update the remaining widgets to exclude the selected light
             this.lightSelectionWidgets.forEach((widget, index) => {
@@ -100,24 +107,59 @@ class LightGroupNode extends LiteGraph.LGraphNode {
     }
 
     onExecute() {
-        // Retrieve HSV values
         const hsvInfo = this.getInputData(0);
 
-        // Distribute HSV values to all selected light nodes
         if (hsvInfo) {
-            this.selectedLights.forEach(lightNode => {
-                // Implement the logic to send HSV values to each light
+            const delay = 200; // Delay in milliseconds between requests
+            this.selectedLights.forEach((lightNode, index) => {
+                setTimeout(() => {
+                    const light_id = lightNode.properties.light_id;
+                    const bridge_ip = lightNode.properties.bridge_ip;
+                    const api_key = lightNode.properties.api_key;
+
+                    if (light_id && bridge_ip && api_key) {
+                        console.log(`Light ID: ${light_id}, Bridge IP: ${bridge_ip}, API Key: ${api_key}`);
+
+                        const hueScaled = Math.round(hsvInfo.hue * 65535);
+                        const satScaled = Math.round(hsvInfo.saturation * 254);
+                        const briScaled = Math.round(hsvInfo.brightness);
+
+                        const data = {
+                            on: lightNode.properties.on,
+                            bri: briScaled,
+                            hue: hueScaled,
+                            sat: satScaled
+                        };
+
+                        fetch(`http://${bridge_ip}/api/${api_key}/lights/${light_id}/state`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data)
+                        })
+                        .then(response => response.json())
+                        .then(responseData => {
+                            console.log(`Light ${light_id} - State updated successfully:`, responseData);
+                        })
+                        .catch(error => {
+                            console.error(`Light ${light_id} - Error updating state:`, error);
+                        });
+                    } else {
+                        console.error("Light ID, Bridge IP, or API Key is undefined for one of the selected lights.");
+                    }
+                }, index * delay);  // Stagger the requests by the specified delay
             });
         }
 
-        // Aggregate and output device IDs from all selected lights
+        // Ensure device IDs are outputted correctly
         const deviceIDs = this.selectedLights.map(light => light.properties.light_id);
-        this.setOutputData(0, { device_ids: deviceIDs });
-    }
+        
+        // Add the debug logs here
+        console.log("LightGroupNode outputting device IDs:", deviceIDs);
+        console.log("Selected lights data:", this.selectedLights);
 
-    onAdded() {
-        // Force size when the node is first added to the graph
-        this.forceResize();
+        this.setOutputData(0, { device_ids: deviceIDs });
     }
 }
 
