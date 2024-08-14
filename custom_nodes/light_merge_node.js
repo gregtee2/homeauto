@@ -46,42 +46,33 @@ class LightMergeNode extends LiteGraph.LGraphNode {
         }
 
         // Adjust inputs dynamically based on connections
-        this.adjustInputs();
+        this.adjustInputs(mergedLights.length);
     }
 
     // Method to adjust inputs dynamically
-    adjustInputs() {
-        let connectedInputs = 0;
+    adjustInputs(connectedLightsCount) {
+        const expectedInputs = connectedLightsCount + 1;
 
-        for (let i = 0; i < this.numInputs; i++) {
-            if (this.isInputConnected(i)) {
-                connectedInputs++;
-            }
+        // If too many inputs, remove extras
+        while (this.numInputs > expectedInputs) {
+            this.removeInput(this.numInputs - 1);
+            this.numInputs--;
         }
 
-        if (connectedInputs === this.numInputs) {
+        // If too few inputs, add the needed ones
+        while (this.numInputs < expectedInputs) {
             this.addNewInput();
-        } else if (connectedInputs < this.numInputs - 1) {
-            this.removeLastInput();
         }
+
+        // Maintain a minimum size to avoid shrinking too much
+        this.size[1] = Math.max(150, 50 + this.numInputs * 30);
     }
 
     // Method to dynamically add more inputs as needed
     addNewInput() {
+        this.addInput(`Light ${this.numInputs + 1}`, "light_info");
         this.numInputs++;
-        this.addInput(`Light ${this.numInputs}`, "light_info");
-        this.size[1] += 30; // Adjust the node height to fit more inputs
         console.log(`LightMergeNode: Added new input - Light ${this.numInputs}`);
-    }
-
-    // Method to remove the last input if it's not needed
-    removeLastInput() {
-        if (this.numInputs > 1) {
-            this.numInputs--;
-            this.removeInput(this.numInputs);
-            this.size[1] -= 30; // Adjust the node height accordingly
-            console.log(`LightMergeNode: Removed input - Light ${this.numInputs + 1}`);
-        }
     }
 }
 
