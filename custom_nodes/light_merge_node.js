@@ -1,4 +1,3 @@
-// Define LightMergeNode
 class LightMergeNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
@@ -18,9 +17,7 @@ class LightMergeNode extends LiteGraph.LGraphNode {
         // For debouncing logs
         this.lastLogTime = 0;
         this.logInterval = 1000; // Log once every 1000ms
-
-        // To track the previous state
-        this.lastMergedIds = [];
+        this.lastMergedIds = ""; // Track last merged IDs to reduce repetitive logging
     }
 
     onExecute() {
@@ -28,37 +25,44 @@ class LightMergeNode extends LiteGraph.LGraphNode {
 
         for (let i = 0; i < this.numInputs; i++) {
             const lightInfo = this.getInputData(i);
-            if (lightInfo && lightInfo.light_id !== undefined) {
+            if (lightInfo) {
                 mergedLights.push(lightInfo);
             }
         }
 
-        const currentMergedIds = mergedLights.map(light => light.light_id);
+        const mergedIds = mergedLights.map(light => light.light_id).join(",");
 
-        // If there are valid lights to merge and the state has changed
-        if (mergedLights.length > 0 && !this.arraysEqual(this.lastMergedIds, currentMergedIds)) {
-            this.setOutputData(0, { device_ids: currentMergedIds });
+        // Set the combined light info as the output
+        this.setOutputData(0, { device_ids: mergedLights.map(light => light.light_id) });
 
-            // Debounced logging
-            const currentTime = Date.now();
-            if (currentTime - this.lastLogTime > this.logInterval) {
-                console.log("LightMergeNode: Received light info:", mergedLights);
-                console.log("LightMergeNode: Merged device IDs:", currentMergedIds);
-                this.lastLogTime = currentTime;
+        // Debounced logging - only log when there is a meaningful change
+        const currentTime = Date.now();
+        if (currentTime - this.lastLogTime > this.logInterval && mergedIds !== this.lastMergedIds) {
+            if (mergedLights.length > 0) {
+                console.log("LightMergeNode: Merged device IDs:", mergedLights.map(light => light.light_id));
+                this.lastMergedIds = mergedIds; // Update last logged IDs
             }
+            this.lastLogTime = currentTime;
+        }
 
-            // Update the last merged IDs to the current state
-            this.lastMergedIds = currentMergedIds;
-        } else if (mergedLights.length === 0) {
-            // Clear the output if there's no valid data
-            this.setOutputData(0, null);
+        // Adjust inputs dynamically based on connections
+        this.adjustInputs();
+    }
 
-            // Log once about no valid light info
-            const currentTime = Date.now();
-            if (currentTime - this.lastLogTime > this.logInterval) {
-                console.log("LightMergeNode: No valid light info to merge.");
-                this.lastLogTime = currentTime;
+    // Method to adjust inputs dynamically
+    adjustInputs() {
+        let connectedInputs = 0;
+
+        for (let i = 0; i < this.numInputs; i++) {
+            if (this.isInputConnected(i)) {
+                connectedInputs++;
             }
+        }
+
+        if (connectedInputs === this.numInputs) {
+            this.addNewInput();
+        } else if (connectedInputs < this.numInputs - 1) {
+            this.removeLastInput();
         }
     }
 
@@ -67,15 +71,17 @@ class LightMergeNode extends LiteGraph.LGraphNode {
         this.numInputs++;
         this.addInput(`Light ${this.numInputs}`, "light_info");
         this.size[1] += 30; // Adjust the node height to fit more inputs
+        console.log(`LightMergeNode: Added new input - Light ${this.numInputs}`);
     }
 
-    // Utility function to check if two arrays are equal
-    arraysEqual(arr1, arr2) {
-        if (arr1.length !== arr2.length) return false;
-        for (let i = 0; i < arr1.length; i++) {
-            if (arr1[i] !== arr2[i]) return false;
+    // Method to remove the last input if it's not needed
+    removeLastInput() {
+        if (this.numInputs > 1) {
+            this.numInputs--;
+            this.removeInput(this.numInputs);
+            this.size[1] -= 30; // Adjust the node height accordingly
+            console.log(`LightMergeNode: Removed input - Light ${this.numInputs + 1}`);
         }
-        return true;
     }
 }
 
