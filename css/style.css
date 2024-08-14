@@ -261,11 +261,29 @@ textarea {
 /* Add these styles at the end of your style.css file */
 
 .light-item {
-    padding: 5px;
-    cursor: pointer;
-    border-bottom: 1px solid #ddd;
+    padding: 5px !important;
+    cursor: pointer !important;
+    border-bottom: 1px solid #ddd !important;
+    background-color: #f0f0f0 !important;
+    color: #333 !important;
 }
 
 .light-item:hover {
-    background-color: #eee;
+    background-color: #850c0c !important;
+}
+
+
+
+#toggleButton, #saveGraphBtn, #loadGraphBtn {
+    background-color: rgb(102, 102, 102); /* This is equivalent to #666 */
+    color: rgb(164, 192, 184); /* White text */
+    border: none; /* Removes default border */
+    padding: 10px; /* Adjust padding */
+    margin: 5px; /* Adjust margin */
+    border-radius: 5px; /* Add rounded corners */
+    cursor: pointer; /* Change cursor to pointer */
+}
+
+#toggleButton:hover, #saveGraphBtn:hover, #loadGraphBtn:hover {
+    background-color: rgb(85, 85, 85); /* Darker shade on hover, equivalent to #555 */
 }
