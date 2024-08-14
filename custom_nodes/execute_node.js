@@ -1,5 +1,5 @@
-// Define TriggerNode
-class TriggerNode extends LiteGraph.LGraphNode {
+// Define ExecuteNode
+class ExecuteNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Execute";
@@ -99,4 +99,4 @@ class TriggerNode extends LiteGraph.LGraphNode {
 }
 
 // Register the node type
-LiteGraph.registerNodeType("custom/trigger", TriggerNode);
+LiteGraph.registerNodeType("custom/execute", ExecuteNode);
