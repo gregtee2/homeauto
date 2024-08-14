@@ -24,8 +24,6 @@ class TriggerNode extends LiteGraph.LGraphNode {
             sat: lightInfo.hsv.saturation
         };
 
-        console.log(`Sending request to update light state:`, data);
-
         fetch(`http://localhost:5000/api/light/${lightInfo.light_id}/state`, {
             method: 'POST',
             headers: {
@@ -50,6 +48,11 @@ class TriggerNode extends LiteGraph.LGraphNode {
             state = this.properties.state;
         }
 
+        // If lightInfo is invalid, exit early
+        if (!lightInfo || (!Array.isArray(lightInfo.device_ids) && !lightInfo.light_id)) {
+            return;
+        }
+
         // Check if state has changed
         if (state !== this.lastState) {
             this.lastState = state;
@@ -61,11 +64,6 @@ class TriggerNode extends LiteGraph.LGraphNode {
             }
 
             this.debounceTimeout = setTimeout(() => {
-                if (!lightInfo) {
-                    console.error("Light Info is undefined in trigger_node.");
-                    return;
-                }
-
                 let deviceIds = lightInfo.device_ids;
 
                 // Fallback to single light_id if device_ids is not provided
@@ -74,15 +72,7 @@ class TriggerNode extends LiteGraph.LGraphNode {
                 }
 
                 if (!Array.isArray(deviceIds)) {
-                    console.error("No valid device_ids or light_id provided in trigger_node.");
                     return;
-                }
-
-                // Log once every 1000ms
-                const currentTime = Date.now();
-                if (currentTime - this.lastLogTime > this.logInterval) {
-                    console.log("TriggerNode received state change. Light IDs:", deviceIds, "State:", state);
-                    this.lastLogTime = currentTime;
                 }
 
                 deviceIds.forEach(light_id => {
@@ -101,8 +91,6 @@ class TriggerNode extends LiteGraph.LGraphNode {
                         .catch(error => {
                             console.error(`Light ${light_id} - Error triggering state:`, error);
                         });
-                    } else {
-                        console.error("light_id is undefined in the device_ids array.");
                     }
                 });
             }, 500); // Wait 500ms before processing, to avoid rapid re-triggers
