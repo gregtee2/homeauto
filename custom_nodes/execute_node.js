@@ -3,10 +3,15 @@ class ExecuteNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Execute";
-        this.size = [200, 60];
-        this.properties = { state: true }; // Default state set to true
+        this.size = [200, 80];
+        this.properties = { state: true, enable: false }; // Added enable property
+
         this.addInput("Light Info", "light_info");
         this.addInput("State", "boolean");
+
+        this.addWidget("toggle", "Enable", this.properties.enable, (value) => {
+            this.properties.enable = value;
+        });
 
         this.lastState = null;
         this.debounceTimeout = null;
@@ -16,30 +21,13 @@ class ExecuteNode extends LiteGraph.LGraphNode {
         this.logInterval = 1000; // Log once every 1000ms
     }
 
-    updateLightState(lightInfo) {
-        const data = {
-            on: this.properties.state,
-            bri: lightInfo.hsv.brightness,
-            hue: lightInfo.hsv.hue,
-            sat: lightInfo.hsv.saturation
-        };
-
-        fetch(`http://localhost:5000/api/light/${lightInfo.light_id}/state`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        }).then(response => response.json())
-          .then(data => {
-              console.log(`Light ${lightInfo.light_id} - State updated successfully:`, data);
-          })
-          .catch(error => {
-              console.error(`Error updating light state for ${lightInfo.light_id}:`, error);
-          });
-    }
-
     onExecute() {
+        // Check if the node is enabled before proceeding
+        if (!this.properties.enable) {
+            console.log(`ExecuteNode is disabled. Skipping execution.`);
+            return;
+        }
+
         const lightInfo = this.getInputData(0);
         let state = this.getInputData(1);
 
@@ -95,6 +83,12 @@ class ExecuteNode extends LiteGraph.LGraphNode {
                 });
             }, 500); // Wait 500ms before processing, to avoid rapid re-triggers
         }
+    }
+
+    // Override configure to reset enable to false when loading from a saved graph
+    configure(data) {
+        super.configure(data);
+        this.properties.enable = false; // Reset enable to false on load
     }
 }
 
