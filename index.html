@@ -66,7 +66,6 @@
             <button id="saveGraphBtn">Save Graph</button>
             <button id="loadGraphBtn">Load Graph</button>
             <input type="file" id="fileInput" accept=".json">
-            <input type="file" id="fileInput" style="display: none;">
         </div>
     </div>
 
@@ -79,8 +78,10 @@
     <script src="custom_nodes/execute_node.js"></script>
     <script src="custom_nodes/hsv_control_node.js"></script>
     <script src="custom_nodes/timer_trigger_node.js"></script>
-    <script src="custom_nodes/light_group_node.js"></script>
-    <script src="custom_nodes/light_merge_node.js"></script>
+    <!--script src="custom_nodes/light_group_node.js"></script-->
+    <script src="custom_nodes/OffsetValueNode.js"></script>
+    <script src="custom_nodes/HueRotationNode.js"></script>
+    <script src="custom_nodes/FixedLightMergeNode.js"></script>
     <script src="js/initializeGraph.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
 
@@ -126,35 +127,28 @@
             graph.add(node);
         }
 
-        // Save Graph with custom name
+        // Client-side save functionality
         document.getElementById("saveGraphBtn").addEventListener("click", function () {
-            const fileName = prompt("Enter a file name to save the graph:", "graph_data");
-            if (fileName) {
-                const graphData = JSON.stringify(graph.serialize());
-                fetch(`http://127.0.0.1:5000/api/saveGraph`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ graph: graphData, filename: fileName })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error('Failed to save graph');
-                    }
-                })
-                .then(data => {
-                    console.log("Graph saved successfully:", data);
-                })
-                .catch(error => {
-                    console.error("Error saving graph:", error);
-                });
-            }
+            const graphData = JSON.stringify(graph.serialize());
+
+            // Create a Blob from the graph data
+            const blob = new Blob([graphData], { type: 'application/json' });
+
+            // Generate a default filename with timestamp
+            const defaultFilename = `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+
+            // Use the native file save dialog
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = defaultFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            console.log("Graph saved successfully on client-side.");
         });
 
-        // Load Graph from file input
+        // Client-side load functionality
         document.getElementById("loadGraphBtn").addEventListener("click", function () {
             document.getElementById('fileInput').click();
         });

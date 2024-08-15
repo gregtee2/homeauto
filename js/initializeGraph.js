@@ -49,7 +49,65 @@ function initializeGraph() {
 window.addEventListener("load", initializeGraph);
 window.addEventListener('resize', resizeCanvas);
 
-document.getElementById("loadGraphBtn").addEventListener("click", function () {
+// Flag to prevent multiple dialogs
+let isDialogOpen = false;
+
+// Client-side save functionality
+const saveButton = document.getElementById("saveGraphBtn");
+if (saveButton) {
+    saveButton.addEventListener("click", handleSaveGraph);
+} else {
+    console.error("saveGraphBtn not found.");
+}
+
+function handleSaveGraph(event) {
+    if (isDialogOpen) {
+        console.log("Dialog already open. Skipping save.");
+        return; // Prevent opening another dialog
+    }
+
+    isDialogOpen = true;
+    console.log("Opening save dialog.");
+
+    // Prevent default behavior and stop the event from propagating
+    event.preventDefault();
+    event.stopPropagation();
+
+    const graphData = JSON.stringify(graph.serialize());
+
+    // Create a Blob from the graph data
+    const blob = new Blob([graphData], { type: 'application/json' });
+
+    // Generate a default filename with timestamp
+    const defaultFilename = `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+
+    // Use the native file save dialog
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = defaultFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    console.log("Graph saved successfully on client-side.");
+
+    isDialogOpen = false; // Reset the flag once the save is complete
+}
+
+// Client-side load functionality
+document.getElementById("loadGraphBtn").addEventListener("click", function (event) {
+    if (isDialogOpen) {
+        console.log("Dialog already open. Skipping load.");
+        return; // Prevent opening another dialog
+    }
+
+    isDialogOpen = true;
+    console.log("Opening load dialog.");
+
+    // Prevent default behavior and stop the event from propagating
+    event.preventDefault();
+    event.stopPropagation();
+
     console.log("Load button clicked. Opening file dialog...");
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -76,39 +134,9 @@ document.getElementById("loadGraphBtn").addEventListener("click", function () {
         } else {
             console.log("No file selected.");
         }
+
+        isDialogOpen = false; // Reset the flag once loading is complete
     });
 
     fileInput.click();
 });
-
-const saveButton = document.getElementById("saveGraphBtn");
-if (saveButton) {
-    saveButton.addEventListener("click", function () {
-        console.log("Save button clicked.");
-        const graphData = JSON.stringify(graph.serialize());
-        console.log("Saving graph data:", graphData);
-
-        fetch('http://127.0.0.1:5000/api/saveGraph', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ graph: graphData })
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Failed to save graph');
-            }
-        })
-        .then(data => {
-            console.log("Graph saved successfully:", data);
-        })
-        .catch(error => {
-            console.error("Error saving graph:", error);
-        });
-    });
-} else {
-    console.error("saveGraphBtn not found.");
-}

@@ -84,7 +84,7 @@ class HueLightNode extends LiteGraph.LGraphNode {
         })
         .then(response => response.json())
         .then(responseData => {
-            console.log('HueLightNode - Light state updated successfully:', responseData);
+            // console.log('HueLightNode - Light state updated successfully:', responseData);
         })
         .catch(error => {
             console.error('HueLightNode - Error updating light state:', error);

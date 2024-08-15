@@ -56,25 +56,5 @@ def get_lights():
         print(f"Error fetching lights: {e}")
         return jsonify(success=False, error=str(e)), 500
 
-@app.route('/api/saveGraph', methods=['POST'])
-def save_graph():
-    graph_data = request.json.get('graph')
-    filename = request.json.get('filename', 'graph_data.json')
-    try:
-        with open(f'{filename}.json', 'w') as f:
-            f.write(graph_data)
-        return jsonify(success=True)
-    except Exception as e:
-        return jsonify(success=False, error=str(e))
-
-@app.route('/api/loadGraph', methods=['GET'])
-def load_graph():
-    try:
-        with open('graph_data.json', 'r') as f:
-            graph_data = f.read()
-        return jsonify(graph=graph_data)
-    except Exception as e:
-        return jsonify(success=False, error=str(e))
-
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
