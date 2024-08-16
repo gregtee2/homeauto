@@ -2,26 +2,26 @@ class HSVRotationNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "HSV Rotation";
-        this.size = [286.4, 201.5]; // Set the size based on the example provided
-        this.properties = { 
-            speed: 0.5, 
-            throttle: 1000, 
-            brightness: 254, 
-            hueStart: 0, 
-            hueEnd: 360, 
-            bounce: false 
+        this.size = [361, 256]; // Set the desired size here
+        this.properties = {
+            speed: 0.5,
+            throttle: 1000,
+            brightness: 254,
+            hueStart: 0,
+            hueEnd: 360,
+            bounce: false,
+            hueShift: 0
         };
 
-        this.addOutput("HSV Info", "hsv_info");
         this.hue = 0;
         this.startTime = Date.now();
         this.lastUpdateTime = 0;
         this.direction = 1;  // To manage the bounce effect
 
-        // Add widgets for speed, throttle, brightness, hue range, and bounce toggle
+        // Add widgets for speed, throttle, brightness, hue range, bounce toggle, and hue shift
         this.addWidget("slider", "Speed", this.properties.speed, (value) => {
             this.properties.speed = value;
-        }, { min: 0, max: 10 });
+        }, { min: 0, max: 50 });
 
         this.addWidget("slider", "Throttle (ms)", this.properties.throttle, (value) => {
             this.properties.throttle = value;
@@ -32,18 +32,42 @@ class HSVRotationNode extends LiteGraph.LGraphNode {
         }, { min: 0, max: 254 });
 
         this.addWidget("slider", "Hue Start", this.properties.hueStart, (value) => {
-            this.properties.hueStart = value;
+            this.properties.hueStart = Math.round(value);  // Ensure whole number
+            this.updateColorSwatch();  // Update color swatch
             this.setDirtyCanvas(true);
         }, { min: 0, max: 360 });
 
         this.addWidget("slider", "Hue End", this.properties.hueEnd, (value) => {
-            this.properties.hueEnd = value;
+            this.properties.hueEnd = Math.round(value);  // Ensure whole number
+            this.updateColorSwatch();  // Update color swatch
             this.setDirtyCanvas(true);
         }, { min: 0, max: 360 });
 
         this.addWidget("toggle", "Bounce", this.properties.bounce, (value) => {
             this.properties.bounce = value;
         });
+
+        // Add slider and numeric input for Hue Shift
+        this.hueShiftSlider = this.addWidget("slider", "Hue Shift", this.properties.hueShift, (value) => {
+            this.properties.hueShift = Math.round(value); // Ensure whole number
+            this.updateHueShiftWidgets();  // Sync the input field with the slider
+            this.updateColorSwatch();
+        }, { min: 0, max: 360 });
+
+        this.hueShiftInput = this.addWidget("number", "Hue Shift Value", this.properties.hueShift, (value) => {
+            this.properties.hueShift = Math.round(value); // Ensure whole number
+            this.updateHueShiftWidgets();  // Sync the slider with the input field
+            this.updateColorSwatch();
+        }, { step: 100 }); // Increment in steps of 1
+
+        this.addOutput("HSV Info", "hsv_info");
+
+        this.updateColorSwatch();
+    }
+
+    onResize() {
+        // Override the onResize to force the desired size
+        this.size = [360, 256]; // Force the node to keep this size
     }
 
     onExecute() {
@@ -69,32 +93,48 @@ class HSVRotationNode extends LiteGraph.LGraphNode {
             this.hue = (elapsedTime * this.properties.speed) % hueRange + this.properties.hueStart;
         }
 
+        // Apply hue shift
+        const shiftedHue = (this.hue + this.properties.hueShift) % 360;
+
         const hsvInfo = {
-            hue: this.hue / 360, // Normalize to 0-1
+            hue: shiftedHue / 360, // Normalize to 0-1
             saturation: 1.0, // Fixed at full saturation
             brightness: this.properties.brightness // Adjustable brightness
         };
 
         // Output the HSV info
         this.setOutputData(0, hsvInfo);
+        this.updateColorSwatch();
     }
 
-    // Draw the color bar in the background
-    onDrawBackground(ctx) {
-        // Ensure we're calling the superclass method first
-        if (super.onDrawBackground) {
-            super.onDrawBackground(ctx);
-        }
+    updateHueShiftWidgets() {
+        // Sync the slider and input field
+        this.hueShiftSlider.value = this.properties.hueShift;
+        this.hueShiftInput.value = this.properties.hueShift;
+    }
 
-        // Draw the color bar below the sliders
+    updateColorSwatch() {
+        // Calculate and apply the hue range and shift
+        const startHue = this.properties.hueStart;
+        const endHue = this.properties.hueEnd;
+        const hueShift = this.properties.hueShift;
+
+        // Update the node border color
+        const hue = (startHue + hueShift) % 360;
+        const color = `hsl(${hue}, 100%, 50%)`;
+        this.boxcolor = color;
+
+        if (this.graph && this.graph.canvas) {
+            this.graph.canvas.draw(true, true);
+        }
+    }
+
+    onDrawForeground(ctx) {
+        // Draw a color swatch that reflects the hueStart, hueEnd, and hueShift
         const gradient = ctx.createLinearGradient(10, this.size[1] - 30, this.size[0] - 10, this.size[1] - 30);
 
-        // We want to draw the full spectrum from hueStart to hueEnd
-        const hueRange = this.properties.hueEnd - this.properties.hueStart;
-
-        // Add multiple stops to create a smooth gradient
         for (let i = 0; i <= 10; i++) {
-            const hue = this.properties.hueStart + (hueRange * i / 10);
+            const hue = (this.properties.hueStart + this.properties.hueShift + (this.properties.hueEnd - this.properties.hueStart) * (i / 10)) % 360;
             gradient.addColorStop(i / 10, `hsl(${hue}, 100%, 50%)`);
         }
 
@@ -112,10 +152,10 @@ class HSVRotationNode extends LiteGraph.LGraphNode {
     // Configure the node's properties when loading from a saved state
     configure(data) {
         super.configure(data);
-        this.properties = data.properties || { speed: 0.5, throttle: 1000, brightness: 254, hueStart: 0, hueEnd: 360, bounce: false };
-
-        // Force the size when loading the node
-        this.size = [286.4, 201.5];
+        this.properties = data.properties || {
+            speed: 0.5, throttle: 1000, brightness: 254, 
+            hueStart: 0, hueEnd: 360, bounce: false, hueShift: 0
+        };
 
         // Update the widget values
         this.widgets[0].value = this.properties.speed;
@@ -124,11 +164,13 @@ class HSVRotationNode extends LiteGraph.LGraphNode {
         this.widgets[3].value = this.properties.hueStart;
         this.widgets[4].value = this.properties.hueEnd;
         this.widgets[5].value = this.properties.bounce;
+        this.updateHueShiftWidgets();
+        this.updateColorSwatch();
     }
 
-    // Ensure the node size is correct when added to the graph
-    onAdded() {
-        this.size = [286.4, 201.5];
+    onStart() {
+        // Force the node to have a specific size when added to the graph
+        this.size = [360, 256]; // Set size when the graph starts
     }
 }
 
