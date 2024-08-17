@@ -1,6 +1,3 @@
-
-
-
 @echo off
 REM Start the Flask server
 start "Flask Server" cmd /k "cd /d C:\toggle_project && python app.py"
@@ -16,4 +13,5 @@ timeout /t 5
 
 REM Open the default web browser and navigate to the URL
 start "Web Browser" "http://localhost:8081"
+
 

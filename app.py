@@ -3,6 +3,7 @@ from flask_cors import CORS
 from phue import Bridge
 
 app = Flask(__name__)
+<<<<<<< HEAD
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Philips Hue Bridge Setup
@@ -16,6 +17,14 @@ try:
 except Exception as e:
     print(f"Could not connect to the Hue Bridge. Error: {e}")
     print("Please press the link button on your Hue Bridge and try again.")
+=======
+CORS(app)
+
+bridge_ip = '192.168.1.39'
+config_file_path = 'python_hue_config.json'
+
+bridge = Bridge(bridge_ip, config_file_path=config_file_path)
+>>>>>>> 4e461b31d9ee476a3456ef520457ad3a74dc8925
 
 @app.route('/api/light/<int:light_id>/state', methods=['POST'])
 def set_light_state(light_id):
@@ -42,6 +51,7 @@ def set_light_state(light_id):
 
 @app.route('/api/lights', methods=['GET'])
 def get_lights():
+<<<<<<< HEAD
     try:
         lights = bridge.get_light_objects('name')
         light_info = {
@@ -58,3 +68,16 @@ def get_lights():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+=======
+    lights = bridge.get_light_objects('name')
+    light_info = {name: light.light_id for name, light in lights.items()}
+    return jsonify(light_info)
+
+if __name__ == '__main__':
+    try:
+        bridge.connect()
+    except Exception as e:
+        print(f"Could not connect to the Hue Bridge. Error: {e}")
+        print("Please press the link button on your Hue Bridge and try again.")
+    app.run(debug=True)
+>>>>>>> 4e461b31d9ee476a3456ef520457ad3a74dc8925
