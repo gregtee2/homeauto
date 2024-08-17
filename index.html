@@ -18,10 +18,6 @@
             height: 100%;
             position: relative;
         }
-        #graphcanvas {
-            width: 100%;
-            height: 100%;
-        }
         #lightList {
             position: absolute;
             top: 50px;
@@ -34,23 +30,25 @@
             display: none; /* Initially hidden */
             z-index: 5;
         }
-        #toggleButton {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            padding: 10px;
-        }
         #controls {
             position: absolute;
             top: 10px;
-            right: 10px;
+            left: 10px;
             z-index: 10;
             display: flex;
             gap: 10px; /* Space between buttons */
         }
         #controls button {
             padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #controls button:hover {
+            background-color: #45a049;
         }
         #fileInput {
             display: none;
@@ -61,31 +59,59 @@
     <div id="main">
         <canvas id="graphcanvas"></canvas>
         <div id="lightList"></div>
-        <button id="toggleButton" onclick="toggleLightList()">Toggle Light List</button>
         <div id="controls">
+            <button id="fetchGlobalsButton">Fetch Globals</button>
+            <button id="resetGlobalsBtn">Reset Globals</button>
             <button id="saveGraphBtn">Save Graph</button>
             <button id="loadGraphBtn">Load Graph</button>
             <input type="file" id="fileInput" accept=".json">
         </div>
+        <div id="globalStatus" style="margin-top: 20px; color: white;">
+            <!-- Status of the IP and API key will be displayed here -->
+            <div id="bridgeIP"></div>
+            <div id="apiKey"></div>
+        </div>
     </div>
 
-    <!-- Moved scripts to the end of the body to ensure elements are fully loaded -->
+    <div id="manualIpEntry" style="display:none;">
+        <label for="bridgeIpField">Enter Hue Bridge IP Address:</label>
+        <input type="text" id="bridgeIpField" placeholder="192.168.x.x">
+        <button id="submitIpButton">Submit IP</button>
+    </div>
+
+    <div id="apiKeyRetrieval" style="display:none;">
+        <button id="apiKeyButton">Press after Hue Bridge button</button>
+        <input type="hidden" id="apiKeyField">
+    </div>
+
+    <!-- Ensure globalManager.js is loaded before initializeGraph.js -->
+    <script src="globals/globalManager.js"></script>
+    <script src="globals/fetchGlobals.js"></script>
+    <script src="globals/globals.js"></script>
+    <script src="js/initializeGraph.js"></script>
     <script src="js/litegraph.js"></script>
     <script src="js/litegraph-editor.js"></script>
     <script src="js/defaults.js"></script>
-    <script src="custom_nodes/hue_light_node.js"></script>
+    <!--script src="custom_nodes/hue_light_node.js"></script-->
     <script src="custom_nodes/pushbutton_node.js"></script>
     <script src="custom_nodes/execute_node.js"></script>
     <script src="custom_nodes/hsv_control_node.js"></script>
-    <script src="custom_nodes/timer_trigger_node.js"></script>
+    <!--script src="custom_nodes/timer_trigger_node.js"></script-->
     <script src="custom_nodes/HueLightNodePlus.js"></script>
     <script src="custom_nodes/OffsetValueNode.js"></script>
     <script src="custom_nodes/HueRotationNode.js"></script>
     <script src="custom_nodes/FixedLightMergeNode.js"></script>
-    <script src="js/initializeGraph.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
+    <script src="custom_nodes/HueBridgeConfigNode.js"></script>
 
     <script>
+        document.getElementById("fetchGlobalsButton").addEventListener("click", function() {
+            initializeGlobals();
+        });
+
+        document.getElementById("resetGlobalsBtn").addEventListener("click", function() {
+            resetGlobals();
+        });
+
         function toggleLightList() {
             const lightList = document.getElementById('lightList');
             if (lightList.style.display === 'none') {
@@ -116,7 +142,7 @@
 
         function addLightNode(lightId, lightName) {
             const node = LiteGraph.createNode('custom/hue_light');
-            console.log('Node created:', node);  // This should log the node object
+            console.log('Node created:', node);
             if (!node) {
                 console.error("Failed to create node 'custom/hue_light'");
                 return;
@@ -131,13 +157,9 @@
         document.getElementById("saveGraphBtn").addEventListener("click", function () {
             const graphData = JSON.stringify(graph.serialize());
 
-            // Create a Blob from the graph data
             const blob = new Blob([graphData], { type: 'application/json' });
-
-            // Generate a default filename with timestamp
             const defaultFilename = `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
 
-            // Use the native file save dialog
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = defaultFilename;
@@ -171,5 +193,10 @@
             }
         });
     </script>
+<!-- Other HTML content -->
+
+<!-- Place before closing body tag -->
+<script src="globals/fetchGlobals.js"></script>
 </body>
 </html>
+
