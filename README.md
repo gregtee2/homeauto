@@ -42,7 +42,7 @@ Hue Bridge IP Address:
 When you first launch the application, press the "Fetch Globals" button in the interface. This will prompt you to enter your Hue Bridge IP address. Enter the IP address you identified earlier.
 
 Obtaining the API Key:
-After entering the IP address, the application will guide you to press the button on your Hue Bridge. Once you have pressed the button, click the "Fetch API Key" button in the interface. The application will automatically retrieve and store the API key needed to control the lights.
+After entering the IP address, the application will guide you to press the button on your Hue Bridge. Once you have pressed the button, click the "Fetch API Key" button in the interface. You will have 30 seconds to push the Hue Bridge top button, and then press the button in the UI. The application will automatically retrieve and store the API key needed to control the lights.
 
 Using LightGraph UI
 Node-based Interface: The application uses a node-based graphical interface where you can drag and drop nodes to create workflows for controlling your lights.
