@@ -18,16 +18,29 @@ class FixedLightMergeNode extends LiteGraph.LGraphNode {
 
     onExecute() {
         let mergedLights = [];
+        let bridge_ip = null;
+        let api_key = null;
 
         // Collect data from all inputs
         for (let i = 0; i < this.inputs.length; i++) {
             const lightInfo = this.getInputData(i);
             if (lightInfo) {
-                // Merge the lights, taking into account the case where the input is already a merged result
+                // Merge the lights while preserving their individual info
                 if (lightInfo.device_ids && Array.isArray(lightInfo.device_ids)) {
-                    mergedLights = mergedLights.concat(lightInfo.device_ids.map(id => ({ light_id: id })));
+                    mergedLights = mergedLights.concat(lightInfo.device_ids.map(id => ({
+                        light_id: id,
+                        hsv: lightInfo.hsv
+                    })));
                 } else {
                     mergedLights.push(lightInfo);
+                }
+
+                // Capture the bridge_ip and api_key from the first valid input
+                if (!bridge_ip && lightInfo.bridge_ip) {
+                    bridge_ip = lightInfo.bridge_ip;
+                }
+                if (!api_key && lightInfo.api_key) {
+                    api_key = lightInfo.api_key;
                 }
             }
         }
@@ -42,7 +55,12 @@ class FixedLightMergeNode extends LiteGraph.LGraphNode {
             }
 
             // Set the combined light info as the output
-            this.setOutputData(0, { device_ids: mergedLights.map(light => light.light_id) });
+            this.setOutputData(0, { 
+                device_ids: mergedLights.map(light => light.light_id),
+                lights: mergedLights, // Pass through individual light info
+                bridge_ip: bridge_ip,  // Include bridge_ip
+                api_key: api_key       // Include api_key
+            });
         } else {
             // If no lights are connected, ensure we don't send an empty output
             this.setOutputData(0, null);
