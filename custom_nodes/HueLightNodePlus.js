@@ -2,143 +2,28 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Hue Light Plus";
-        this.size = [260, 150];
+        this.size = [210, 58];
 
-        // Fetch IP and API key from localStorage
-        const hueGlobals = JSON.parse(localStorage.getItem('hue_globals')) || {};
-        this.properties = { 
-            light_id: null,  // Initially null, will be set by dropdown
-            light_name: "Select Light", // Placeholder name
+        this.properties = {
+            light_id: "",
+            light_name: "Select Light",
             hsv: { hue: 0, saturation: 1, brightness: 254 },
-            api_key: hueGlobals.apiKey || this.getApiKeyFromLocalStorage(),
-            bridge_ip: hueGlobals.bridgeIp || this.getBridgeIpFromLocalStorage()
+            api_key: this.getApiKeyFromLocalStorage(),
+            bridge_ip: this.getBridgeIpFromLocalStorage(),
+            lights_fetched: false
         };
 
         this.addInput("HSV Info", "hsv_info");
         this.addOutput("Light Info", "light_info");
 
-        // Fetch the list of lights and add the dropdown
-        this.fetchAndAddLightDropdown();
-    }
+        // Initialize the widget array
+        this.widgets_up = true;
 
-    // Function to fetch API key from localStorage
-    getApiKeyFromLocalStorage() {
-        const apiKey = localStorage.getItem('apiKey');
-        if (!apiKey) {
-            console.error("API Key not found in localStorage!");
-        }
-        return apiKey;
-    }
-
-    // Function to fetch Bridge IP from localStorage
-    getBridgeIpFromLocalStorage() {
-        const bridgeIp = localStorage.getItem('bridgeIp');
-        if (!bridgeIp) {
-            console.error("Bridge IP not found in localStorage!");
-        }
-        return bridgeIp;
-    }
-
-    fetchAndAddLightDropdown() {
-        const url = `http://${this.properties.bridge_ip}/api/${this.properties.api_key}/lights`;
-        console.log("Fetching lights from:", url); // Log the URL
-
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                const lights = data;
-                const lightOptions = Object.entries(lights).map(([id, light]) => ({
-                    id: id,
-                    name: light.name
-                }));
-
-                // Add a dropdown widget for light selection
-                this.addWidget("combo", "Light", this.properties.light_name, (selectedLight) => {
-                    const selected = lightOptions.find(light => light.name === selectedLight);
-                    if (selected) {
-                        this.properties.light_id = selected.id;
-                        this.properties.light_name = selected.name;
-                        this.title = `Hue Light - ${this.properties.light_name}`;
-                    }
-                }, { values: lightOptions.map(light => light.name) });
-
-                // Set the node title to the currently selected light
-                if (this.properties.light_id) {
-                    const selected = lightOptions.find(light => light.id === this.properties.light_id);
-                    if (selected) {
-                        this.title = `Hue Light - ${selected.name}`;
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching lights:', error);
-            });
-    }
-
-    onExecute() {
-        if (!this.properties.light_id || !this.properties.bridge_ip || !this.properties.api_key) {
-            console.error("Missing bridge_ip or api_key for light:", this.properties.light_id);
-            return; // Exit if no light is selected or if bridge IP/API key is missing
-        }
-
-        const hsvInput = this.getInputData(0);  // HSV input
-
-        if (hsvInput !== undefined) {
-            const hsvString = JSON.stringify(hsvInput);
-            if (hsvString !== JSON.stringify(this.properties.hsv)) {
-                this.properties.hsv = hsvInput;
-                this.updateLightState();
-            }
-        }
-
-        const outputData = {
-            light_id: this.properties.light_id,
-            hsv: this.properties.hsv,
-            bridge_ip: this.properties.bridge_ip,  // Include bridge IP
-            api_key: this.properties.api_key       // Include API key
-        };
-        this.setOutputData(0, outputData);
-
-        // Update color swatch on the node
-        this.updateColorSwatch();
-    }
-
-    updateLightState() {
-        const hueScaled = Math.round(this.properties.hsv.hue * 65535);
-        const satScaled = Math.round(this.properties.hsv.saturation * 254);
-        const briScaled = Math.round(this.properties.hsv.brightness);
-
-        const data = {
-            bri: briScaled,
-            hue: hueScaled,
-            sat: satScaled
-        };
-
-        const url = `http://${this.properties.bridge_ip}/api/${this.properties.api_key}/lights/${this.properties.light_id}/state`;
-        console.log('Sending PUT request to:', url);  // Log the URL
-
-        fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .catch(error => {
-            console.error('HueLightNodePlus - Error updating light state:', error);
-        });
-    }
-
-    updateColorSwatch() {
-        const hsv = this.properties.hsv;
-        const rgb = this.hsvToRgb(hsv.hue, hsv.saturation, hsv.brightness / 254);
-        const colorHex = this.rgbToHex(rgb[0], rgb[1], rgb[2]);
-
-        this.boxcolor = colorHex; // Set the border color to the current light color
-
-        if (this.graph && this.graph.canvas) {
-            this.graph.canvas.draw(true, true);
+        // Fetch and populate the light dropdown if we have the necessary info
+        if (this.properties.api_key && this.properties.bridge_ip) {
+            this.fetchAndAddLightDropdown();
+        } else {
+            console.error("API Key or Bridge IP is missing. Please check localStorage.");
         }
     }
 
@@ -164,21 +49,117 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
     }
 
-    // Override the serialize method to include custom properties
+    getApiKeyFromLocalStorage() {
+        const apiKey = localStorage.getItem('apiKey');
+        if (!apiKey) {
+            console.error("API Key not found in localStorage!");
+        }
+        return apiKey;
+    }
+
+    getBridgeIpFromLocalStorage() {
+        const bridgeIp = localStorage.getItem('bridgeIp');
+        if (!bridgeIp) {
+            console.error("Bridge IP not found in localStorage!");
+        }
+        return bridgeIp;
+    }
+
+    fetchAndAddLightDropdown() {
+        const url = `http://${this.properties.bridge_ip}/api/${this.properties.api_key}/lights`;
+        console.log("Fetching lights from:", url);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const lights = data;
+                const lightOptions = Object.entries(lights).map(([id, light]) => ({
+                    id: id,
+                    name: light.name
+                }));
+
+                // Clear any existing widgets to prevent duplicates
+                this.widgets = [];
+
+                // Add the dropdown widget for selecting a light
+                this.addWidget("combo", "Light", this.properties.light_name, (selectedLight) => {
+                    const selected = lightOptions.find(light => light.name === selectedLight);
+                    if (selected) {
+                        this.properties.light_id = selected.id;
+                        this.properties.light_name = selected.name;
+                        this.title = `Hue Light - ${this.properties.light_name}`;
+                    }
+                }, { values: lightOptions.map(light => light.name) });
+
+                // Update title if a light is already selected
+                if (this.properties.light_id) {
+                    const selected = lightOptions.find(light => light.id === this.properties.light_id);
+                    if (selected) {
+                        this.title = `Hue Light - ${selected.name}`;
+                    }
+                }
+
+                this.properties.lights_fetched = true; // Mark lights as fetched
+            })
+            .catch(error => {
+                console.error('Error fetching lights:', error);
+            });
+    }
+
+    onExecute() {
+        if (!this.properties.bridge_ip || !this.properties.api_key) {
+            console.error("Missing bridge_ip or api_key for light:", this.properties.light_id);
+            return;
+        }
+
+        // Fetch lights if not already done
+        if (!this.properties.lights_fetched) {
+            this.fetchAndAddLightDropdown();
+        }
+
+        const hsvInput = this.getInputData(0);
+        if (hsvInput !== undefined) {
+            this.properties.hsv = hsvInput;
+        }
+
+        const outputData = {
+            light_id: this.properties.light_id,
+            hsv: this.properties.hsv,
+            bridge_ip: this.properties.bridge_ip,
+            api_key: this.properties.api_key
+        };
+        this.setOutputData(0, outputData);
+
+        this.updateColorSwatch();
+    }
+
+    updateColorSwatch() {
+        const hsv = this.properties.hsv;
+        const rgb = this.hsvToRgb(hsv.hue, hsv.saturation, hsv.brightness / 254);
+        const colorHex = this.rgbToHex(rgb[0], rgb[1], rgb[2]);
+
+        this.boxcolor = colorHex;
+
+        if (this.graph && this.graph.canvas) {
+            this.graph.canvas.draw(true, true);
+        }
+    }
+
+    // Override the serialize method to save the node's state
     serialize() {
         const data = super.serialize();
         data.properties = this.properties;
         return data;
     }
 
-    // Override the configure method to restore saved properties
+    // Override the configure method to restore the node's state
     configure(data) {
         super.configure(data);
         this.properties = data.properties || this.properties;
         this.title = `Hue Light - ${this.properties.light_name}`;
-        this.updateColorSwatch(); // Update the swatch color on load
+        this.updateColorSwatch();
+        this.fetchAndAddLightDropdown(); // Re-fetch lights to update the dropdown
     }
 }
 
-// Register the new node type with LiteGraph
 LiteGraph.registerNodeType("custom/hue_light_plus", HueLightNodePlus);
