@@ -1,3 +1,39 @@
+What's new?  8/25/24
+
+# Hue Light Control System Using LiteGraph.js
+
+## Overview
+This project leverages LiteGraph.js to create a dynamic, node-based interface for controlling Philips Hue lights. 
+
+## Recent Enhancements
+### HSVRotationNode
+- **Retention of Original Features**: Continued support for speed, throttle, brightness, hue range, bounce, hue shift, and saturation controls.
+- **New Output Capabilities**: Includes `hueStart` and `hueEnd` values in its output.
+- **Saturation Control**: Added a saturation slider.
+
+### OffsetValueNode
+- **Dynamic Range Fetching**: Fetches `hueStart` and `hueEnd` values from HSVRotationNode.
+- **Wrap-Around Logic**: Ensures hue offset stays within defined boundaries.
+
+### Null Node (Pass-Through Node)
+- **Purpose**: Acts as an anchor point for easier graph management.
+
+## Issue Resolutions
+- **Console Logging Management**: Reduced unnecessary logs.
+- **Geolocation Fetching**: Fixed issues in SunriseSunsetNode.
+- **Final On and Off Time Calculation**: Corrected trigger time updates.
+
+## Next Steps
+- Further Testing
+- Documentation
+- UI Refinements
+
+
+
+
+
+
+
 Home Automation with LightGraph UI Overview
 This project provides a web-based interface using the LightGraph UI to control Philips Hue lights. The application allows users to interact with their Hue Bridge and connected lights through an intuitive, node-based graphical interface.
 
