@@ -1,3 +1,4 @@
+// PushButtonNode: Outputting state with debounce logic (similar to brightness control)
 class PushButtonNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
@@ -6,7 +7,6 @@ class PushButtonNode extends LiteGraph.LGraphNode {
         this.properties = { state: false };
         this.lastState = null; // Keep track of the last state
         this.debounceTimeout = null; // Timeout for debouncing
-
         this.addOutput("State", "boolean");
     }
 
@@ -27,7 +27,6 @@ class PushButtonNode extends LiteGraph.LGraphNode {
         if (pos[0] >= 0 && pos[0] <= this.size[0] && pos[1] >= 0 && pos[1] <= this.size[1]) {
             this.properties.state = !this.properties.state;
             this.setDirtyCanvas(true); // Redraw the canvas
-            this.onExecute();
             return true;
         }
         return false;
@@ -48,3 +47,5 @@ class PushButtonNode extends LiteGraph.LGraphNode {
 }
 
 LiteGraph.registerNodeType("custom/pushbutton", PushButtonNode);
+
+// Define TriggerNode

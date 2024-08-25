@@ -85,6 +85,7 @@
     </div>
 
     <!-- Ensure globalManager.js is loaded before initializeGraph.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
     <script src="globals/globalManager.js"></script>
     <script src="globals/fetchGlobals.js"></script>
     <script src="globals/globals.js"></script>
@@ -92,7 +93,7 @@
     <script src="js/litegraph.js"></script>
     <script src="js/litegraph-editor.js"></script>
     <script src="js/defaults.js"></script>
-    <!--script src="custom_nodes/hue_light_node.js"></script-->
+    <script src="custom_nodes/PassThroughNode.js"></script>
     <script src="custom_nodes/pushbutton_node.js"></script>
     <script src="custom_nodes/execute_node.js"></script>
     <script src="custom_nodes/hsv_control_node.js"></script>
@@ -102,6 +103,13 @@
     <script src="custom_nodes/HueRotationNode.js"></script>
     <script src="custom_nodes/FixedLightMergeNode.js"></script>
     <script src="custom_nodes/HueBridgeConfigNode.js"></script>
+    <script src="custom_nodes/timers/TimeOfDayNode.js"></script>
+    <script src="custom_nodes/timers/TriggerBusNode.js"></script>
+    <script src="custom_nodes/timers/DaysOfTheWeekNode.js"></script>
+    <script src="custom_nodes/timers/SunriseSunsetNode.js"></script>
+    <script src="custom_nodes/timers/HybridTimerTriggerNode.js"></script>
+    <script src="custom_nodes/timers/TimeOfDayTestNode.js"></script>
+    <script src="custom_nodes/timers/CombinedSunriseSunsetTimeOfDayNode.js"></script>
 
     <script>
         document.getElementById("fetchGlobalsButton").addEventListener("click", function() {

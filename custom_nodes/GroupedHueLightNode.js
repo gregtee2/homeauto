@@ -1,12 +1,11 @@
-class HueLightNodePlus extends LiteGraph.LGraphNode {
+class GroupedHueLightNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
-        this.title = "Hue Light Plus";
-        this.size = [210, 58];
+        this.title = "Grouped Hue Lights";
+        this.size = [210, 150]; // Adjusted to accommodate multiple lights
 
         this.properties = {
-            light_id: "",
-            light_name: "Select Light",
+            selected_lights: [],  // Array to hold selected light IDs
             hsv: { hue: 0, saturation: 1, brightness: 254 },
             api_key: this.getApiKeyFromLocalStorage(),
             bridge_ip: this.getBridgeIpFromLocalStorage(),
@@ -17,7 +16,7 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         this.addOutput("Light Info", "light_info");
 
         // Initialize the dropdown widget with default value
-        this.lightWidget = this.addWidget("combo", "Light", this.properties.light_name, this.onLightSelected.bind(this), { values: ["Select Light"] });
+        this.lightWidget = this.addWidget("multiselect", "Lights", this.properties.selected_lights, this.onLightsSelected.bind(this), { values: [] });
 
         // Check if API Key and Bridge IP are valid
         if (this.properties.api_key && this.properties.bridge_ip) {
@@ -49,13 +48,8 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         return bridgeIp;
     }
 
-    onLightSelected(selectedLight) {
-        const selected = this.lightOptions.find(light => light.name === selectedLight);
-        if (selected) {
-            this.properties.light_id = selected.id;
-            this.properties.light_name = selected.name;
-            this.title = `Hue Light - ${this.properties.light_name}`;
-        }
+    onLightsSelected(selectedLights) {
+        this.properties.selected_lights = selectedLights;
     }
 
     fetchAndAddLightDropdown() {
@@ -84,11 +78,6 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
 
                 // Update the dropdown with fetched light options
                 this.lightWidget.options.values = this.lightOptions.map(light => light.name);
-                this.lightWidget.value = this.properties.light_name;
-
-                // Set the selected light
-                this.onLightSelected(this.properties.light_name);
-
                 this.properties.lights_fetched = true;
             })
             .catch(error => {
@@ -97,8 +86,8 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     }
 
     onExecute() {
-        if (!this.properties.light_id) {
-            // No light selected, skip execution
+        if (this.properties.selected_lights.length === 0) {
+            // No lights selected, skip execution
             return;
         }
 
@@ -107,18 +96,23 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
             this.properties.hsv = hsvInput;
         }
 
-        // Validate light_id and hsv data
-        if (!this.properties.light_id || !this.properties.hsv) {
-            console.error("Invalid light_id or hsv data: ", this.properties);
+        // Validate selected_lights and hsv data
+        if (this.properties.selected_lights.length === 0 || !this.properties.hsv) {
+            console.error("Invalid selected_lights or hsv data: ", this.properties);
             return;
         }
 
-        // Check if the current data is different from the previous data
-        const currentData = {
-            lights: [{
-                light_id: this.properties.light_id,
+        // Prepare data for all selected lights
+        const lightsData = this.properties.selected_lights.map(lightName => {
+            const selectedLight = this.lightOptions.find(light => light.name === lightName);
+            return {
+                light_id: selectedLight.id,
                 hsv: this.properties.hsv
-            }],
+            };
+        });
+
+        const currentData = {
+            lights: lightsData,
             bridge_ip: this.properties.bridge_ip,
             api_key: this.properties.api_key
         };
@@ -131,15 +125,15 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         // Store the current data to compare in the next execution
         this.lastOutputData = currentData;
 
-        //console.log("Sending to ExecuteNode:", currentData);
+        console.log("Sending to ExecuteNode:", currentData);
         this.setOutputData(0, currentData);
 
         this.updateColorSwatch();
     }
 
     updateColorSwatch() {
-        if (!this.properties.light_id) {
-            // No light selected, skip color swatch update
+        if (this.properties.selected_lights.length === 0) {
+            // No lights selected, skip color swatch update
             return;
         }
 
@@ -192,4 +186,4 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/hue_light_plus", HueLightNodePlus);
+LiteGraph.registerNodeType("custom/grouped_hue_light", GroupedHueLightNode);

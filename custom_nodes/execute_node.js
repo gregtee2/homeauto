@@ -15,13 +15,11 @@ class ExecuteNode extends LiteGraph.LGraphNode {
         this.lastState = null;
         this.lastHsvs = {}; // Track last HSV values per light
         this.debounceTimeout = null;
-
-        this.lastLogTime = 0;
-        this.logInterval = 1000; // Log once every 1000ms
     }
 
     onExecute() {
         if (!this.properties.enable) {
+            console.log("ExecuteNode is disabled.");
             return;
         }
 
@@ -32,7 +30,8 @@ class ExecuteNode extends LiteGraph.LGraphNode {
             state = this.properties.state;
         }
 
-        if (!lightInfo || !Array.isArray(lightInfo.device_ids)) {
+        if (!lightInfo || !Array.isArray(lightInfo.lights) || lightInfo.lights.length === 0) {
+            console.log("Invalid light info or missing lights array.", lightInfo);
             return;
         }
 
@@ -46,8 +45,7 @@ class ExecuteNode extends LiteGraph.LGraphNode {
         }
 
         // Check for HSV changes in each light
-        let lights = lightInfo.lights || [];
-        lights.forEach(light => {
+        lightInfo.lights.forEach(light => {
             const lastHsv = this.lastHsvs[light.light_id] || {};
             const hsvChanged = 
                 light.hsv.hue !== lastHsv.hue ||
@@ -60,13 +58,15 @@ class ExecuteNode extends LiteGraph.LGraphNode {
             }
         });
 
+        // Execute only if there were changes
         if (shouldUpdate) {
+            // Debounce to prevent rapid re-triggering
             if (this.debounceTimeout) {
                 clearTimeout(this.debounceTimeout);
             }
 
             this.debounceTimeout = setTimeout(() => {
-                lights.forEach(light => {
+                lightInfo.lights.forEach(light => {
                     if (light.light_id && lightInfo.bridge_ip && lightInfo.api_key) {
                         const url = `http://${lightInfo.bridge_ip}/api/${lightInfo.api_key}/lights/${light.light_id}/state`;
 
@@ -86,7 +86,7 @@ class ExecuteNode extends LiteGraph.LGraphNode {
                         })
                         .then(response => response.json())
                         .then(responseData => {
-                            console.log(`Light ${light.light_id} - State triggered successfully:`, responseData);
+                            //console.log(`Light ${light.light_id} - State triggered successfully:`, responseData);
                         })
                         .catch(error => {
                             console.error(`Light ${light.light_id} - Error triggering state:`, error);
@@ -95,7 +95,7 @@ class ExecuteNode extends LiteGraph.LGraphNode {
                         console.error(`Missing bridge_ip or api_key for light ${light.light_id}`);
                     }
                 });
-            }, 500); // Wait 500ms before processing
+            }, 1000); // Wait 1000ms before processing
         }
     }
 

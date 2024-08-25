@@ -12,8 +12,9 @@ class FixedLightMergeNode extends LiteGraph.LGraphNode {
         // Single output for the merged light info
         this.addOutput("Merged Light Info", "light_info");
 
-        // Store the last merged IDs to prevent repeated logging
+        // Store the last merged IDs and last known inputs
         this.lastMergedIds = "";
+        this.lastInputStates = new Array(this.inputs.length).fill(undefined);
     }
 
     onExecute() {
@@ -21,19 +22,16 @@ class FixedLightMergeNode extends LiteGraph.LGraphNode {
         let bridge_ip = null;
         let api_key = null;
 
+        let hasValidInput = false;
+
         // Collect data from all inputs
         for (let i = 0; i < this.inputs.length; i++) {
             const lightInfo = this.getInputData(i);
-            if (lightInfo) {
+            if (lightInfo && lightInfo.lights && lightInfo.lights.length > 0) {
+                hasValidInput = true;
+
                 // Merge the lights while preserving their individual info
-                if (lightInfo.device_ids && Array.isArray(lightInfo.device_ids)) {
-                    mergedLights = mergedLights.concat(lightInfo.device_ids.map(id => ({
-                        light_id: id,
-                        hsv: lightInfo.hsv
-                    })));
-                } else {
-                    mergedLights.push(lightInfo);
-                }
+                mergedLights = mergedLights.concat(lightInfo.lights);
 
                 // Capture the bridge_ip and api_key from the first valid input
                 if (!bridge_ip && lightInfo.bridge_ip) {
@@ -43,9 +41,15 @@ class FixedLightMergeNode extends LiteGraph.LGraphNode {
                     api_key = lightInfo.api_key;
                 }
             }
+
+            // Check if the input state has changed
+            if (this.lastInputStates[i] !== lightInfo) {
+                this.lastInputStates[i] = lightInfo;
+            }
         }
 
-        if (mergedLights.length > 0) {
+        // Handle when there are valid light inputs
+        if (hasValidInput) {
             const mergedIds = mergedLights.map(light => light.light_id).join(",");
 
             // Only log if the merged IDs have changed
@@ -55,13 +59,18 @@ class FixedLightMergeNode extends LiteGraph.LGraphNode {
             }
 
             // Set the combined light info as the output
-            this.setOutputData(0, { 
+            this.setOutputData(0, {
                 device_ids: mergedLights.map(light => light.light_id),
                 lights: mergedLights, // Pass through individual light info
                 bridge_ip: bridge_ip,  // Include bridge_ip
                 api_key: api_key       // Include api_key
             });
         } else {
+            // Only log once if transitioning to a state with no valid inputs
+            if (this.lastMergedIds !== "") {
+                console.log("FixedLightMergeNode: No valid light inputs connected, outputting null.");
+                this.lastMergedIds = ""; // Reset last merged IDs
+            }
             // If no lights are connected, ensure we don't send an empty output
             this.setOutputData(0, null);
         }
