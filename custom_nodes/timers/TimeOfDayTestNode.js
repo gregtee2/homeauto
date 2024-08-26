@@ -4,34 +4,30 @@ class TimeOfDayTestNode extends LiteGraph.LGraphNode {
         this.title = "Time of Day Test";
         this.size = [220, 150];
 
-        // Properties that will be editable through the UI
         this.properties = {
-            start_time: "8:00 AM",  // Default start time
-            stop_time: "6:00 PM",  // Default stop time
-            use_external_time: false  // Toggle to use external time
+            start_time: "8:00 AM",
+            stop_time: "6:00 PM",
+            use_external_time: false
         };
 
         this.addOutput("State", "boolean");
-        this.addInput("Time Input", "object");  // Input to receive the time data
+        this.addInput("Time Input", "object");
 
-        // Initialize widgets
         this.setupWidgets();
 
-        // Parse the initial start and stop times
         this.startTimeObj = this.parseTimeString(this.properties.start_time);
         this.stopTimeObj = this.parseTimeString(this.properties.stop_time);
+
+        this.lastState = null;
     }
 
     setupWidgets() {
         this.widgets = [];
-
-        // Toggle Widget to use external time
         this.addWidget("toggle", "Use External Time", this.properties.use_external_time, (v) => {
             this.properties.use_external_time = v;
-            this.updateTimes();  // Force update when the toggle is switched
+            this.updateTimes();
         });
 
-        // Start Time and Stop Time Widgets
         this.addWidget("text", "Start Time", this.properties.start_time, (v) => {
             this.properties.start_time = v;
             this.startTimeObj = this.parseTimeString(v);
@@ -45,22 +41,19 @@ class TimeOfDayTestNode extends LiteGraph.LGraphNode {
     }
 
     updateTimes() {
-        // If the toggle is on, pull the time from the connected node
         if (this.properties.use_external_time) {
             const timeData = this.getInputData(0);
             if (timeData) {
-                if (this.properties.start_time !== timeData.onTime || this.properties.stop_time !== timeData.offTime) {
-                    console.log("Received time data:", timeData);
-                    this.properties.start_time = timeData.onTime || this.properties.start_time;
-                    this.properties.stop_time = timeData.offTime || this.properties.stop_time;
-                    this.startTimeObj = this.parseTimeString(this.properties.start_time);
-                    this.stopTimeObj = this.parseTimeString(this.properties.stop_time);
+                console.log("Received external time data:", timeData);
+                this.properties.start_time = timeData.onTime || this.properties.start_time;
+                this.properties.stop_time = timeData.offTime || this.properties.stop_time;
+                this.startTimeObj = this.parseTimeString(this.properties.start_time);
+                this.stopTimeObj = this.parseTimeString(this.properties.stop_time);
 
-                    this.widgets[1].value = this.properties.start_time;
-                    this.widgets[2].value = this.properties.stop_time;
+                this.widgets[1].value = this.properties.start_time;
+                this.widgets[2].value = this.properties.stop_time;
 
-                    this.setDirtyCanvas(true);  // Redraw the canvas to reflect changes
-                }
+                this.setDirtyCanvas(true);
             }
         }
     }
@@ -74,6 +67,7 @@ class TimeOfDayTestNode extends LiteGraph.LGraphNode {
         if (ampm === "AM" && hours === 12) {
             hours = 0;
         }
+        console.log(`Parsed time - Hours: ${hours}, Minutes: ${minutes}`);
         return { hours, minutes };
     }
 
@@ -89,7 +83,13 @@ class TimeOfDayTestNode extends LiteGraph.LGraphNode {
         console.log(`Stop Time (minutes): ${stopMinutes}`);
         console.log(`Current Minutes: ${currentMinutes}`);
 
-        return currentMinutes >= startMinutes && currentMinutes < stopMinutes;
+        if (currentMinutes >= startMinutes && currentMinutes < stopMinutes) {
+            console.log("Time is within range, triggering On command.");
+            return true;
+        } else {
+            console.log("Time is outside range, triggering Off command.");
+            return false;
+        }
     }
 
     onExecute() {
@@ -102,10 +102,11 @@ class TimeOfDayTestNode extends LiteGraph.LGraphNode {
         if (currentState !== this.lastState) {
             this.lastState = currentState;
             this.setOutputData(0, currentState);
-            console.log(`TimeOfDayTestNode - Outputting state: ${currentState}`);
+            console.log(`TimeOfDayTestNode - Outputting state: ${currentState ? 'On' : 'Off'}`);
             this.triggerSlot(0);
         }
     }
+
 }
 
 LiteGraph.registerNodeType("custom/time_of_day_test", TimeOfDayTestNode);

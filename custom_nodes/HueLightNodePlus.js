@@ -2,7 +2,7 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Hue Light Plus";
-        this.size = [210, 58];
+        this.size = [336, 87]; // Set to the size from the graph file
 
         this.properties = {
             light_id: "",
@@ -19,7 +19,6 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         // Initialize the dropdown widget with default value
         this.lightWidget = this.addWidget("combo", "Light", this.properties.light_name, this.onLightSelected.bind(this), { values: ["Select Light"] });
 
-        // Check if API Key and Bridge IP are valid
         if (this.properties.api_key && this.properties.bridge_ip) {
             this.fetchAndAddLightDropdown();
         } else {
@@ -29,6 +28,87 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         this.lastOutputData = null;
     }
 
+    onStart() {
+        this.size = [336, 87]; // Force the node to have a specific size when added to the graph
+    }
+
+    onResize() {
+        this.size = [336, 87]; // Enforce size when the node is resized
+    }
+
+    onExecute() {
+        if (!this.properties.light_id) {
+            return;
+        }
+
+        const hsvInput = this.getInputData(0);
+        if (hsvInput !== undefined) {
+            this.properties.hsv = hsvInput;
+        }
+
+        const currentData = {
+            lights: [{
+                light_id: this.properties.light_id,
+                hsv: this.properties.hsv
+            }],
+            bridge_ip: this.properties.bridge_ip,
+            api_key: this.properties.api_key
+        };
+
+        if (JSON.stringify(this.lastOutputData) === JSON.stringify(currentData)) {
+            return;
+        }
+
+        this.lastOutputData = currentData;
+        this.setOutputData(0, currentData);
+        this.updateColorSwatch(); // Update color swatch with new HSV data
+    }
+
+    updateColorSwatch() {
+        if (!this.properties.light_id) {
+            return;
+        }
+
+        const hsv = this.properties.hsv;
+        const rgb = this.hsvToRgb(hsv.hue, hsv.saturation, hsv.brightness / 254);
+        const colorHex = this.rgbToHex(rgb[0], rgb[1], rgb[2]);
+
+        this.boxcolor = colorHex;
+
+        if (this.graph && this.graph.canvas) {
+            this.graph.canvas.draw(true, true);
+        }
+    }
+
+    hsvToRgb(h, s, v) {
+        let r, g, b;
+        const i = Math.floor(h * 6);
+        const f = h * 6 - i;
+        const p = v * (1 - s);
+        const q = v * (1 - f * s);
+        const t = v * (1 - (1 - f) * s);
+        switch (i % 6) {
+            case 0: r = v, g = t, b = p; break;
+            case 1: r = q, g = v, b = p; break;
+            case 2: r = p, g = v, b = t; break;
+            case 3: r = p, g = q, b = v; break;
+            case 4: r = t, g = p, b = v; break;
+            case 5: r = v, g = p, b = q; break;
+        }
+        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+    }
+
+    onDrawForeground(ctx) {
+        const swatchHeight = 20;
+        ctx.fillStyle = this.boxcolor || 'black';
+        ctx.fillRect(10, this.size[1] - swatchHeight - 10, this.size[0] - 20, swatchHeight);
+    }
+
+    // Existing methods for fetching and setting lights, etc., remain unchanged
     getApiKeyFromLocalStorage() {
         const apiKey = localStorage.getItem('apiKey');
         if (!apiKey) {
@@ -94,86 +174,6 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
             .catch(error => {
                 console.error('Error fetching lights:', error);
             });
-    }
-
-    onExecute() {
-        if (!this.properties.light_id) {
-            // No light selected, skip execution
-            return;
-        }
-
-        const hsvInput = this.getInputData(0);
-        if (hsvInput !== undefined) {
-            this.properties.hsv = hsvInput;
-        }
-
-        // Validate light_id and hsv data
-        if (!this.properties.light_id || !this.properties.hsv) {
-            console.error("Invalid light_id or hsv data: ", this.properties);
-            return;
-        }
-
-        // Check if the current data is different from the previous data
-        const currentData = {
-            lights: [{
-                light_id: this.properties.light_id,
-                hsv: this.properties.hsv
-            }],
-            bridge_ip: this.properties.bridge_ip,
-            api_key: this.properties.api_key
-        };
-
-        if (JSON.stringify(this.lastOutputData) === JSON.stringify(currentData)) {
-            // No changes detected, skip sending data
-            return;
-        }
-
-        // Store the current data to compare in the next execution
-        this.lastOutputData = currentData;
-
-        //console.log("Sending to ExecuteNode:", currentData);
-        this.setOutputData(0, currentData);
-
-        this.updateColorSwatch();
-    }
-
-    updateColorSwatch() {
-        if (!this.properties.light_id) {
-            // No light selected, skip color swatch update
-            return;
-        }
-
-        const hsv = this.properties.hsv;
-        const rgb = this.hsvToRgb(hsv.hue, hsv.saturation, hsv.brightness / 254);
-        const colorHex = this.rgbToHex(rgb[0], rgb[1], rgb[2]);
-
-        this.boxcolor = colorHex;
-
-        if (this.graph && this.graph.canvas) {
-            this.graph.canvas.draw(true, true);
-        }
-    }
-
-    hsvToRgb(h, s, v) {
-        let r, g, b;
-        const i = Math.floor(h * 6);
-        const f = h * 6 - i;
-        const p = v * (1 - s);
-        const q = v * (1 - f * s);
-        const t = v * (1 - (1 - f) * s);
-        switch (i % 6) {
-            case 0: r = v, g = t, b = p; break;
-            case 1: r = q, g = v, b = p; break;
-            case 2: r = p, g = v, b = t; break;
-            case 3: r = p, g = q, b = v; break;
-            case 4: r = t, g = p, b = v; break;
-            case 5: r = v, g = p, b = q; break;
-        }
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-    }
-
-    rgbToHex(r, g, b) {
-        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
     }
 
     serialize() {

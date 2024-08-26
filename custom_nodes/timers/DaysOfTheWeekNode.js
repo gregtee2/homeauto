@@ -15,6 +15,7 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
                 Friday: false,
                 Saturday: false
             },
+            everyday: false,
             weekdays: false,
             weekends: false,
             even_days: false,
@@ -43,12 +44,25 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
             });
         }
 
+        // Everyday Toggle
+        this.addWidget("toggle", "Everyday", this.properties.everyday, (v) => {
+            this.properties.everyday = v;
+            if (v) {
+                this.setEveryday(true);
+            } else {
+                this.setEveryday(false);
+            }
+            this.updateState();
+        });
+
         // Weekdays Toggle
         this.addWidget("toggle", "Weekdays", this.properties.weekdays, (v) => {
             this.properties.weekdays = v;
             if (v) {
                 this.setWeekdays(true);
                 this.properties.weekends = false; // Disable Weekends if Weekdays is selected
+            } else {
+                this.setWeekdays(false);  // Clear Weekdays when untoggled
             }
             this.updateState();
         });
@@ -59,6 +73,8 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
             if (v) {
                 this.setWeekends(true);
                 this.properties.weekdays = false; // Disable Weekdays if Weekends is selected
+            } else {
+                this.setWeekends(false);  // Clear Weekends when untoggled
             }
             this.updateState();
         });
@@ -81,26 +97,38 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
 
         // Special Days Input and List
         this.addWidget("text", "Add Special Day (MM/DD)", "", (v) => {
-            if (this.isValidDate(v)) {
+            if (v.trim() === "") {
+                this.properties.special_days.pop();  // Remove the last entry or clear all if the input is empty
+            } else if (this.isValidDate(v)) {
                 this.properties.special_days.push({ date: v, repeat: false });
-                this.updateState();
-                this.setDirtyCanvas(true);
             }
+            this.updateSpecialDaysList();  // Update the list of special days
+            this.setDirtyCanvas(true);  // Mark canvas as needing redraw
+            LiteGraph.closeAllContextMenus();  // Attempt to close any open context menu or popup (keeping this as a safeguard)
         });
 
         // Toggle for Annual Repeat
         this.addWidget("toggle", "Repeat Annually", false, (v) => {
             if (this.properties.special_days.length > 0) {
                 this.properties.special_days[this.properties.special_days.length - 1].repeat = v;
-                this.updateState();
+                this.updateSpecialDaysList();
                 this.setDirtyCanvas(true);
             }
         });
 
-        this.addWidget("info", "Special Days", this.getSpecialDaysList());
+        // Display the Special Days List
+        this.specialDaysWidget = this.addWidget("info", "Special Days", this.getSpecialDaysList());
 
         // Force the size again after widgets setup
         this.forceSize();
+    }
+
+    // Define the updateSpecialDaysList method
+    updateSpecialDaysList() {
+        if (this.specialDaysWidget) {
+            this.specialDaysWidget.value = this.getSpecialDaysList();
+            this.setDirtyCanvas(true);  // Mark canvas as needing redraw
+        }
     }
 
     isValidDate(dateStr) {
@@ -114,21 +142,59 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
             .join(", ");
     }
 
+    setEveryday(enabled) {
+        for (let day in this.properties.days) {
+            this.properties.days[day] = enabled;
+        }
+    }
+
     setWeekdays(enabled) {
         this.properties.days.Monday = enabled;
         this.properties.days.Tuesday = enabled;
         this.properties.days.Wednesday = enabled;
         this.properties.days.Thursday = enabled;
         this.properties.days.Friday = enabled;
+
+        if (!enabled) {
+            // Clear the weekdays toggle if it's turned off
+            this.properties.weekdays = false;
+        }
     }
 
     setWeekends(enabled) {
         this.properties.days.Saturday = enabled;
         this.properties.days.Sunday = enabled;
+
+        if (!enabled) {
+            // Clear the weekends toggle if it's turned off
+            this.properties.weekends = false;
+        }
     }
 
     updateState() {
-        console.log(this.getSpecialDaysList());
+        const days = this.properties.days;
+
+        // Update Weekdays, Weekends, and Everyday toggles based on individual day selections
+        this.properties.everyday = Object.values(days).every(Boolean);
+        this.properties.weekdays = days.Monday && days.Tuesday && days.Wednesday && days.Thursday && days.Friday;
+        this.properties.weekends = days.Saturday && days.Sunday;
+
+        // If any individual weekday is un-toggled, clear the weekdays toggle
+        if (!this.properties.weekdays) {
+            this.properties.weekdays = false;
+        }
+
+        // If any individual weekend day is un-toggled, clear the weekends toggle
+        if (!this.properties.weekends) {
+            this.properties.weekends = false;
+        }
+
+        // If any day is un-toggled, clear the everyday toggle
+        if (!this.properties.everyday) {
+            this.properties.everyday = false;
+        }
+
+        this.updateSpecialDaysList();  // Ensure the special days list is updated
 
         this.setDirtyCanvas(true);  // Mark canvas as needing to redraw
     }
@@ -142,14 +208,18 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
 
         // Check if today is a special day
         for (let sd of this.properties.special_days) {
-            if (sd.date === todayStr) {
-                return true;
-            }
-            if (sd.repeat && sd.date === todayStr) {
+            if (sd.date === todayStr || (sd.repeat && sd.date === todayStr)) {
+                // If today is a special day, return true immediately
                 return true;
             }
         }
 
+        // If a special day exists but today is not that day, return false
+        if (this.properties.special_days.length > 0) {
+            return false;
+        }
+
+        // If no special day is active, proceed with regular checks
         if (this.properties.even_days && dayOfMonth % 2 === 0) {
             return true;
         }
@@ -158,13 +228,17 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
             return true;
         }
 
+        // Return the state based on regular day selections if no special day is active
         return this.properties.days[dayOfWeek] || false;
     }
+
+
 
     onExecute() {
         const input = this.getInputData(0);
 
-        if (input && this.isTodayValid()) {
+        // If a special day is active, ignore other days and output true
+        if (this.isTodayValid()) {
             this.setOutputData(0, input);
         } else {
             this.setOutputData(0, false);
@@ -172,6 +246,19 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
     }
 
     onDrawForeground(ctx) {
+        // Calculate the position for the text with some padding
+        const padding = 10;  // Padding on the left and right
+        const textX = padding;
+        const textY = this.size[1] - 20;
+        const textHeight = 20; // Height of the text area to be cleared
+
+        // Clear the area where the summary text will be drawn, with padding applied
+        ctx.clearRect(textX - padding, textY - textHeight, this.size[0] - 2 * padding, textHeight);
+
+        // Set the background color using the specified RGB value
+        ctx.fillStyle = "rgb(53, 53, 53)";  // Background color to match the node
+        ctx.fillRect(textX - padding, textY - textHeight, this.size[0] - 2 * padding, textHeight);
+
         // Display selected days summary with green text color
         const selectedDays = Object.keys(this.properties.days).filter(day => this.properties.days[day]);
         let summary = `Days: ${selectedDays.join(', ')}`;
@@ -184,7 +271,7 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
         ctx.fillStyle = "#006400";  // Green text color
         ctx.font = "14px Arial";
         ctx.textAlign = "left";
-        ctx.fillText(summary, 10, this.size[1] - 20);
+        ctx.fillText(summary, textX, textY);
     }
 
     onSerialize(o) {

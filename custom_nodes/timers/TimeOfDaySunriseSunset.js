@@ -1,4 +1,4 @@
-class CombinedSunriseSunsetTimeOfDayNode extends LiteGraph.LGraphNode {
+class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Sunrise/Sunset Trigger";
@@ -355,4 +355,4 @@ class CombinedSunriseSunsetTimeOfDayNode extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/combined_sunrise_sunset_time_of_day", CombinedSunriseSunsetTimeOfDayNode);
+LiteGraph.registerNodeType("custom/time_of_day_sunrise_sunset", TimeOfDaySunriseSunset);
