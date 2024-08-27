@@ -1,3 +1,8 @@
+Refer to InstallationReadMe.txt for instructions on install and initial setup.
+
+
+
+
 What's new? 8/26
 
 Summary of Recent Changes
