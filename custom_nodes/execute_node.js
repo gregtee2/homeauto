@@ -26,13 +26,21 @@ class ExecuteNode extends LiteGraph.LGraphNode {
         const lightInfo = this.getInputData(0);
         let state = this.getInputData(1);
 
-        if (state === undefined) {
-            state = this.properties.state;
+        if (!lightInfo) {
+            console.log("ExecuteNode - No light info received, skipping execution.");
+            return;
         }
 
-        if (!lightInfo || !Array.isArray(lightInfo.lights) || lightInfo.lights.length === 0) {
-            console.log("Invalid light info or missing lights array.", lightInfo);
+        if (!Array.isArray(lightInfo.lights) || lightInfo.lights.length === 0) {
+            console.log("ExecuteNode - Invalid or empty lights array:", lightInfo);
             return;
+        }
+
+        //console.log("ExecuteNode - Received light info:", lightInfo);
+        //console.log("ExecuteNode - Received state:", state);
+
+        if (state === undefined) {
+            state = this.properties.state;
         }
 
         let shouldUpdate = false;
@@ -77,6 +85,8 @@ class ExecuteNode extends LiteGraph.LGraphNode {
                             bri: Math.round(light.hsv.brightness)        // Brightness in range [1, 254]
                         };
 
+                        console.log(`Sending command to light ID ${light.light_id} with state ${state ? "ON" : "OFF"}`, bodyData);
+
                         fetch(url, {
                             method: 'PUT',
                             headers: {
@@ -86,7 +96,7 @@ class ExecuteNode extends LiteGraph.LGraphNode {
                         })
                         .then(response => response.json())
                         .then(responseData => {
-                            //console.log(`Light ${light.light_id} - State triggered successfully:`, responseData);
+                            console.log(`Light ${light.light_id} - State triggered successfully:`, responseData);
                         })
                         .catch(error => {
                             console.error(`Light ${light.light_id} - Error triggering state:`, error);

@@ -36,7 +36,10 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
         this.lastState = null;
 
         // Automatically fetch geolocation on load
-        this.initializeTimes();  // <-- Add this line
+        this.initializeTimes();
+
+        // Set up daily update for sunrise/sunset times
+        this.setupDailyUpdate();  // Add this line
     }
 
     // New Method: Initialize Times
@@ -51,6 +54,17 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             this.geolocationAvailable = true;
             this.calculateSunTimes();
         }
+    }
+
+    setupDailyUpdate() {
+        const timeUntilUpdate = 10 * 1000; // 1 minute from now
+
+        setTimeout(() => {
+            console.log("Triggering daily update for sunrise/sunset times.");
+            this.calculateSunTimes(); // Recalculate times
+            console.log("Sunrise and sunset times recalculated.");
+            this.setupDailyUpdate();  // Re-setup for the next update
+        }, timeUntilUpdate);
     }
 
     setupWidgets() {
@@ -177,20 +191,27 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
 
     calculateSunTimes() {
         if (this.geolocationAvailable) {
-            const now = new Date();
+            // Get the current date and time
+            let now = new Date();
+
+            // Simulate 1 minute before midnight
+            now.setHours(23, 59, 0, 0);  // Set time to 11:59 PM
+
+            console.log(`Simulating time: ${now}`);
+
             const sunTimes = SunCalc.getTimes(now, this.properties.latitude, this.properties.longitude);
 
             this.properties.sunrise_time = sunTimes.sunrise;
             this.properties.sunset_time = sunTimes.sunset;
-            console.log(`Sunrise time: ${this.properties.sunrise_time}`);
-            console.log(`Sunset time: ${this.properties.sunset_time}`);
+            console.log(`Simulated Sunrise time: ${this.properties.sunrise_time}`);
+            console.log(`Simulated Sunset time: ${this.properties.sunset_time}`);
 
-            this.updateOnTime();
-            this.updateOffTime();
+            this.updateOnTime(true);
+            this.updateOffTime(true);
         }
     }
 
-    updateOnTime() {
+    updateOnTime(forceUpdate = false) {
         if (this.geolocationAvailable) {
             const finalOnTime = this.calculateOffsetTime(
                 this.properties.sunset_time, 
@@ -202,14 +223,17 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             this.properties.final_on_time = finalOnTime;
             console.log(`Final On Time (Sunset) updated to: ${finalOnTime}`);
             this.widgets[9].value = finalOnTime;  // Ensure correct widget index for Sunset time
-            this.setDirtyCanvas(true);
+            
+            // Explicitly force a UI update
+            this.widgets[9].redraw();  // Redraw the specific widget
+            this.setDirtyCanvas(true); // Mark the whole canvas for redraw
 
             // Set the internal time for time-of-day logic
             this.startTimeObj = this.parseTimeString(finalOnTime);
         }
     }
 
-    updateOffTime() {
+    updateOffTime(forceUpdate = false) {
         if (this.geolocationAvailable) {
             const finalOffTime = this.calculateOffsetTime(
                 this.properties.sunrise_time, 
@@ -221,7 +245,10 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             this.properties.final_off_time = finalOffTime;
             console.log(`Final Off Time (Sunrise) updated to: ${finalOffTime}`);
             this.widgets[10].value = finalOffTime;  // Ensure correct widget index for Sunrise time
-            this.setDirtyCanvas(true);
+            
+            // Explicitly force a UI update
+            this.widgets[10].redraw();  // Redraw the specific widget
+            this.setDirtyCanvas(true); // Mark the whole canvas for redraw
 
             // Set the internal time for time-of-day logic
             this.stopTimeObj = this.parseTimeString(finalOffTime);
@@ -276,7 +303,7 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             return;
         }
 
-        console.log("Executing CombinedSunriseSunsetTimeOfDayNode...");
+        console.log("Executing TimeOfDaySunriseSunset...");
 
         // Ensure the times are updated
         this.updateOnTime();
@@ -289,13 +316,13 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
         if (currentState !== this.lastState) {
             this.lastState = currentState;
             this.setOutputData(0, currentState);
-            console.log(`CombinedSunriseSunsetTimeOfDayNode - Outputting state: ${currentState ? 'On' : 'Off'}`);
+            console.log(`TimeOfDaySunriseSunset - Outputting state: ${currentState ? 'On' : 'Off'}`);
             this.triggerSlot(0);
         } else {
             console.log(`State remains unchanged: ${currentState ? 'On' : 'Off'} at ${new Date().toLocaleTimeString()}`);
         }
 
-        console.log("Finished execution of CombinedSunriseSunsetTimeOfDayNode");
+        console.log("Finished execution of TimeOfDaySunriseSunset");
     }
 
     // Serialize the node's properties to save its state

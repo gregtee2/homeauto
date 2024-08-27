@@ -7,7 +7,7 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         this.properties = {
             light_id: "",
             light_name: "Select Light",
-            hsv: { hue: 0, saturation: 1, brightness: 254 },
+            hsv: { hue: 0.10, saturation: 0.17, brightness: 128 }, // Default HSV values
             api_key: this.getApiKeyFromLocalStorage(),
             bridge_ip: this.getBridgeIpFromLocalStorage(),
             lights_fetched: false
@@ -37,35 +37,45 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     }
 
     onExecute() {
+        let lightData;
+
         if (!this.properties.light_id) {
-            return;
+            //console.warn("No light selected, using placeholder data.");
+            lightData = {
+                lights: [{
+                    light_id: "default",
+                    hsv: { hue: 0, saturation: 1, brightness: 254 } // Default HSV values
+                }],
+                bridge_ip: this.properties.bridge_ip,
+                api_key: this.properties.api_key
+            };
+        } else {
+            const hsvInput = this.getInputData(0);
+            if (hsvInput !== undefined) {
+                this.properties.hsv = hsvInput;
+            }
+
+            lightData = {
+                lights: [{
+                    light_id: this.properties.light_id,
+                    hsv: this.properties.hsv
+                }],
+                bridge_ip: this.properties.bridge_ip,
+                api_key: this.properties.api_key
+            };
         }
 
-        const hsvInput = this.getInputData(0);
-        if (hsvInput !== undefined) {
-            this.properties.hsv = hsvInput;
-        }
+        //console.log("HueLightNodePlus - Sending light data:", lightData);
 
-        const currentData = {
-            lights: [{
-                light_id: this.properties.light_id,
-                hsv: this.properties.hsv
-            }],
-            bridge_ip: this.properties.bridge_ip,
-            api_key: this.properties.api_key
-        };
-
-        if (JSON.stringify(this.lastOutputData) === JSON.stringify(currentData)) {
-            return;
-        }
-
-        this.lastOutputData = currentData;
-        this.setOutputData(0, currentData);
-        this.updateColorSwatch(); // Update color swatch with new HSV data
+        // Output lightData to the next connected node
+        this.setOutputData(0, lightData);
+        this.updateColorSwatch(); // Update color swatch with new or placeholder HSV data
     }
+
 
     updateColorSwatch() {
         if (!this.properties.light_id) {
+            this.boxcolor = 'black'; // Set a default color if no light is selected
             return;
         }
 
@@ -108,7 +118,6 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
         ctx.fillRect(10, this.size[1] - swatchHeight - 10, this.size[0] - 20, swatchHeight);
     }
 
-    // Existing methods for fetching and setting lights, etc., remain unchanged
     getApiKeyFromLocalStorage() {
         const apiKey = localStorage.getItem('apiKey');
         if (!apiKey) {
