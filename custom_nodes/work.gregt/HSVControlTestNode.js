@@ -1,4 +1,4 @@
-class HSVControlNode extends LiteGraph.LGraphNode {
+class HSVControlTestNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "HSV Control Test";
@@ -164,4 +164,4 @@ class HSVControlNode extends LiteGraph.LGraphNode {
 }
 
 // Register the node type with LiteGraph
-LiteGraph.registerNodeType("custom/hsv_control", HSVControlNode);
+LiteGraph.registerNodeType("custom/hsv_control_test", HSVControlTestNode);

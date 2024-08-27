@@ -43,7 +43,9 @@ class PushButtonNode extends LiteGraph.LGraphNode {
     }
 
     onLoad() {
+        this.properties.state = false; // Reset state to "Off" on load
         this.setOutputData(0, this.properties.state);
+        this.setDirtyCanvas(true); // Redraw the canvas
     }
 }
 

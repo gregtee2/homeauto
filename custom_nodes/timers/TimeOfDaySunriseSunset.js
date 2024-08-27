@@ -200,7 +200,7 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             );
 
             this.properties.final_on_time = finalOnTime;
-            console.log(`Final On Time (Sunset) updated to: ${finalOnTime}`);
+            //console.log(`Final On Time (Sunset) updated to: ${finalOnTime}`);
             this.widgets[9].value = finalOnTime;  // Ensure correct widget index for Sunset time
             this.setDirtyCanvas(true);
 
@@ -219,7 +219,7 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             );
 
             this.properties.final_off_time = finalOffTime;
-            console.log(`Final Off Time (Sunrise) updated to: ${finalOffTime}`);
+            //console.log(`Final Off Time (Sunrise) updated to: ${finalOffTime}`);
             this.widgets[10].value = finalOffTime;  // Ensure correct widget index for Sunrise time
             this.setDirtyCanvas(true);
 
@@ -259,7 +259,7 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
         const startMinutes = this.startTimeObj.hours * 60 + this.startTimeObj.minutes;
         const stopMinutes = this.stopTimeObj.hours * 60 + this.stopTimeObj.minutes;
 
-        console.log(`Checking time range - Current: ${now.toLocaleTimeString()}, Start: ${startMinutes} minutes, Stop: ${stopMinutes} minutes`);
+        //console.log(`Checking time range - Current: ${now.toLocaleTimeString()}, Start: ${startMinutes} minutes, Stop: ${stopMinutes} minutes`);
 
         if (startMinutes <= stopMinutes) {
             // Normal time range, same day
@@ -276,7 +276,7 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             return;
         }
 
-        console.log("Executing CombinedSunriseSunsetTimeOfDayNode...");
+        //console.log("Executing CombinedSunriseSunsetTimeOfDayNode...");
 
         // Ensure the times are updated
         this.updateOnTime();
@@ -292,10 +292,10 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             console.log(`CombinedSunriseSunsetTimeOfDayNode - Outputting state: ${currentState ? 'On' : 'Off'}`);
             this.triggerSlot(0);
         } else {
-            console.log(`State remains unchanged: ${currentState ? 'On' : 'Off'} at ${new Date().toLocaleTimeString()}`);
+            //console.log(`State remains unchanged: ${currentState ? 'On' : 'Off'} at ${new Date().toLocaleTimeString()}`);
         }
 
-        console.log("Finished execution of CombinedSunriseSunsetTimeOfDayNode");
+        //console.log("Finished execution of CombinedSunriseSunsetTimeOfDayNode");
     }
 
     // Serialize the node's properties to save its state

@@ -85,7 +85,7 @@ class ExecuteNode extends LiteGraph.LGraphNode {
                             bri: Math.round(light.hsv.brightness)        // Brightness in range [1, 254]
                         };
 
-                        console.log(`Sending command to light ID ${light.light_id} with state ${state ? "ON" : "OFF"}`, bodyData);
+                        //console.log(`Sending command to light ID ${light.light_id} with state ${state ? "ON" : "OFF"}`, bodyData);
 
                         fetch(url, {
                             method: 'PUT',
