@@ -1,3 +1,42 @@
+What's new? 8/26
+
+Summary of Recent Changes
+Dynamic Color Swatch Implementation
+
+HueLightNodePlus:
+Added a dynamic color swatch to visually display the color being sent to the Hue Bridge.
+Integrated the color swatch feature, updating the node UI to reflect current HSV values dynamically.
+Node Size Enforcement
+
+HueLightNodePlus:
+Ensured consistent node size to accommodate the new color swatch and other UI elements.
+Node size is enforced during node initialization, resizing, and graph loading.
+Days of the Week Node Enhancements
+
+Special Day Priority:
+Implemented logic to prioritize special days over regular day selections.
+Special days now trigger the "On" command even if other days are selected.
+User Interface Improvements:
+Added an "Everyday" toggle for easy selection of all days.
+Improved the display of selected days and special days, ensuring clear and accurate UI feedback.
+Updated the background color of text displays to match the node's background for consistency.
+Bug Fixes:
+Fixed the issue where the "Add Special Day" input would persist incorrectly.
+Corrected behavior to ensure special days are correctly loaded from saved graphs.
+Serialization and Deserialization:
+Enhanced serialization to ensure all settings, including special days, are saved and restored accurately.
+Project Management and Node Documentation
+
+Updated project documentation to reflect the recent enhancements and bug fixes.
+Improved clarity on node functionality and interactions, making it easier for developers and users to understand the system.
+Next Steps:
+Testing: Further testing is recommended to validate the enhancements in different scenarios.
+Documentation: Continued updates to project documentation to reflect the latest changes.
+
+
+
+
+
 What's new?  8/25/24
 
 # Hue Light Control System Using LiteGraph.js
