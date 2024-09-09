@@ -1,4 +1,44 @@
 Refer to InstallationReadMe.txt for instructions on install and initial setup.
+# What's new? 9/09/24
+
+Project Overview:
+The Hue Light Control System Using LiteGraph.js continues to evolve with several key updates. Recent work has focused on enhancing the functionality of various nodes and improving user experience, interface layout, and integration with Philips Hue lights.
+
+# Key Accomplishments:
+1. ## Custom Color Node:
+The Custom Color Node was thoroughly refined to handle color transformations accurately, ensuring compatibility with downstream nodes. The node is now capable of generating precise RGB outputs based on user input and ensures that the changes propagate correctly to the Hue Light Node.
+Adjustments were made to ensure seamless operation with the brightness and color temperature controls, preventing unexpected behavior during color transformations.
+
+2. ## Hue Light LUT Node:
+The Hue Light LUT Node was developed and integrated. It uses a custom lookup table (LUT) for color transformations, applying predefined values to adjust the RGB output for more accurate control of Hue lights.
+This node works by taking HSV input, converting it to RGB, applying the LUT for fine-tuning, and then sending the final adjusted output back in HSV format for further use in the system.
+
+3. ## UI Enhancements:
+We redesigned the main user interface (UI) to streamline the button layout. The position of controls such as Load/Save Graph, Fetch Globals, and Light Controls were optimized for ease of use.
+Unnecessary buttons like Main Event were removed, and the layout now ensures better organization and user flow.
+The top-level button structure was revised to ensure that crucial actions, like loading and saving graphs, are easily accessible.
+
+4. ## Hue Light Node Plus:
+Enhancements were made to the Hue Light Node Plus, where we integrated color and brightness controls more effectively. This node now handles manual and automatic state toggling, ensuring that changes are reflected in the Hue lights without introducing errors.
+Integration of the LUT functionality into the Hue Light Node was planned but ultimately managed separately for flexibility and modularity.
+
+5. ## Light Control System Updates:
+Work was done to ensure all nodes (like the Custom Multiplier, Execute Nodes, Pushbutton Node, and Trigger Bus Node) operate correctly within the overall system.
+Several improvements were made to Govee Light Integration, with a focus on expanding light control beyond just the Philips Hue ecosystem, allowing for greater flexibility in automation.
+
+6. ## Refactoring and Node Organization:
+Node classification was improved by reorganizing them into appropriate directories, such as Lighting, Timers, Utility, and Execution. This ensures a cleaner, more structured development environment and easier navigation for future expansion.
+Specific nodes such as Offset Value Node and Merge Light Node were also refined for better performance and integration into more complex lighting workflows.
+Current Focus:
+Further testing and refinement of the Custom Color Node to ensure precise control across a wide range of scenarios.
+Ongoing integration of LUT transformations to improve color accuracy when working with Philips Hue lights.
+Optimizing UI responsiveness and functionality as the system scales.
+Documentation updates to reflect new node structures, workflows, and features for easier onboarding of future developers.
+This phase of the project has enhanced the stability, usability, and extendability of the Hue Light Control System, setting the stage for future expansions and integrations.
+
+
+
+
 
 
 
