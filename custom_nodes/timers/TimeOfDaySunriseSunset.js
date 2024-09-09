@@ -355,4 +355,4 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/time_of_day_sunrise_sunset", TimeOfDaySunriseSunset);
+LiteGraph.registerNodeType("Timers/time_of_day_sunrise_sunset", TimeOfDaySunriseSunset);

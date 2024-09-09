@@ -170,4 +170,4 @@ class HSVRotationNode extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/hsv_rotation", HSVRotationNode);
+LiteGraph.registerNodeType("Lighting/CC_Control_Nodes/hsv_rotation", HSVRotationNode);

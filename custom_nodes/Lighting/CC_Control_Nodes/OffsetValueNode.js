@@ -88,4 +88,4 @@ class OffsetValueNode extends LiteGraph.LGraphNode {
 }
 
 // Register the node type with LiteGraph
-LiteGraph.registerNodeType("custom/offset_value", OffsetValueNode);
+LiteGraph.registerNodeType("Lighting/CC_Control_Nodes/offset_value", OffsetValueNode);

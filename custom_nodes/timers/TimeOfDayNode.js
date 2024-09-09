@@ -140,4 +140,4 @@ class TimeOfDayNode extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/time_of_day", TimeOfDayNode);
+LiteGraph.registerNodeType("Timers/time_of_day", TimeOfDayNode);

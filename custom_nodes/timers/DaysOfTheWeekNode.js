@@ -294,4 +294,4 @@ class DaysOfTheWeekNode extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/days_of_the_week", DaysOfTheWeekNode);
+LiteGraph.registerNodeType("Timers/days_of_the_week", DaysOfTheWeekNode);

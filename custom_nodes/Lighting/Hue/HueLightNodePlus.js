@@ -1,8 +1,18 @@
+
+
+
+
+
+
+
+
+
+
 class HueLightNodePlus extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Hue Light Plus";
-        this.size = [336, 87]; // Set to the size from the graph file
+        this.size = [336, 87]; 
 
         this.properties = {
             light_id: "",
@@ -10,13 +20,21 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
             hsv: { hue: 0.10, saturation: 0.17, brightness: 128 }, // Default HSV values
             api_key: this.getApiKeyFromLocalStorage(),
             bridge_ip: this.getBridgeIpFromLocalStorage(),
-            lights_fetched: false
+            lights_fetched: false,
+            manual_state: true // Add manual state for the toggle
         };
+
+        this.lastLogTime = 0;  // Initialize the lastLogTime
+        this.logInterval = 1000;  // Set the logging interval to 1000 ms
 
         this.addInput("HSV Info", "hsv_info");
         this.addOutput("Light Info", "light_info");
 
-        // Initialize the dropdown widget with default value
+        this.addWidget("toggle", "Manual On/Off", this.properties.manual_state, (value) => {
+            this.properties.manual_state = value;
+            console.log(`HueLightNodePlus - Manual state toggled to: ${value ? "On" : "Off"}`);
+        });
+
         this.lightWidget = this.addWidget("combo", "Light", this.properties.light_name, this.onLightSelected.bind(this), { values: ["Select Light"] });
 
         if (this.properties.api_key && this.properties.bridge_ip) {
@@ -29,25 +47,34 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     }
 
     onStart() {
-        this.size = [336, 87]; // Force the node to have a specific size when added to the graph
+        this.size = [336, 107]; 
     }
 
     onResize() {
-        this.size = [336, 87]; // Enforce size when the node is resized
+        this.size = [336, 107]; 
+    }
+
+    // Define the logThrottled method outside of onExecute
+    logThrottled(lightData) {
+        const now = Date.now();
+        if (now - this.lastLogTime > this.logInterval) {
+            //console.log("HueLightNodePlus - HSV values sent:", lightData.lights[0].hsv);
+            this.lastLogTime = now;
+        }
     }
 
     onExecute() {
         let lightData;
 
         if (!this.properties.light_id) {
-            //console.warn("No light selected, using placeholder data.");
             lightData = {
                 lights: [{
                     light_id: "default",
-                    hsv: { hue: 0, saturation: 1, brightness: 254 } // Default HSV values
+                    hsv: { hue: 0.10, saturation: 0.17, brightness: 128 } 
                 }],
                 bridge_ip: this.properties.bridge_ip,
-                api_key: this.properties.api_key
+                api_key: this.properties.api_key,
+                state: this.properties.manual_state
             };
         } else {
             const hsvInput = this.getInputData(0);
@@ -61,21 +88,22 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
                     hsv: this.properties.hsv
                 }],
                 bridge_ip: this.properties.bridge_ip,
-                api_key: this.properties.api_key
+                api_key: this.properties.api_key,
+                state: this.properties.manual_state
             };
         }
 
-        //console.log("HueLightNodePlus - Sending light data:", lightData);
+        // Call the logThrottled function
+        this.logThrottled(lightData);
 
-        // Output lightData to the next connected node
+        // Set the output data and update the swatch
         this.setOutputData(0, lightData);
-        this.updateColorSwatch(); // Update color swatch with new or placeholder HSV data
+        this.updateColorSwatch(); 
     }
-
 
     updateColorSwatch() {
         if (!this.properties.light_id) {
-            this.boxcolor = 'black'; // Set a default color if no light is selected
+            this.boxcolor = 'black'; 
             return;
         }
 
@@ -171,13 +199,10 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
                     return;
                 }
 
-                // Update the dropdown with fetched light options
                 this.lightWidget.options.values = this.lightOptions.map(light => light.name);
                 this.lightWidget.value = this.properties.light_name;
 
-                // Set the selected light
                 this.onLightSelected(this.properties.light_name);
-
                 this.properties.lights_fetched = true;
             })
             .catch(error => {
@@ -201,4 +226,4 @@ class HueLightNodePlus extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/hue_light_plus", HueLightNodePlus);
+LiteGraph.registerNodeType("Lighting/Hue/hue_light_plus", HueLightNodePlus);

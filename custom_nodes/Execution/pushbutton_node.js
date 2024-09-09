@@ -49,4 +49,4 @@ class PushButtonNode extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/pushbutton", PushButtonNode);
+LiteGraph.registerNodeType("Execution/pushbutton", PushButtonNode);

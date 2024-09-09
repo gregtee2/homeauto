@@ -17,4 +17,4 @@ class PassThroughNode extends LiteGraph.LGraphNode {
 }
 
 // Register the node with LiteGraph
-LiteGraph.registerNodeType("custom/pass_through", PassThroughNode);
+LiteGraph.registerNodeType("Utility/pass_through", PassThroughNode);

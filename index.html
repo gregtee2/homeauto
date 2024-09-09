@@ -40,18 +40,62 @@
         }
         #controls button {
             padding: 10px;
-            background-color: #4CAF50;
-            color: white;
+            background-color: #85858570;
+            color: #788b97;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
         }
         #controls button:hover {
-            background-color: #45a049;
+            background-color: #4f473a;
+        }
+        .button-group-right {
+            position: absolute;
+            top: 10px;
+            right: 10px; /* Aligns this group to the right side */
+            display: flex;
+            gap: 10px; /* Space between the right-aligned buttons */
         }
         #fileInput {
             display: none;
+        }
+    /* Log Panel Styles */
+        #log-panel {
+            width: 100%;
+            height: 200px;
+            overflow-y: scroll;
+            background-color: black; /* Change background color to black */
+            color: gray; /* Change text color to gray */
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-family: monospace;
+            position: absolute;
+            bottom: 0;
+            z-index: 10;
+        }
+        /* Added for light state display */
+        #lightState {
+            position: absolute;
+            bottom: 320px; /* Adjusted to prevent overlap */
+            left: 10px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 5;
+        }
+        #lightSelector {
+            position: absolute;
+            bottom: 270px; /* Adjusted to prevent overlap */
+            left: 10px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 5;
         }
     </style>
 </head>
@@ -60,17 +104,44 @@
         <canvas id="graphcanvas"></canvas>
         <div id="lightList"></div>
         <div id="controls">
-            <button id="fetchGlobalsButton">Fetch Globals</button>
-            <button id="resetGlobalsBtn">Reset Globals</button>
             <button id="saveGraphBtn">Save Graph</button>
             <button id="loadGraphBtn">Load Graph</button>
-            <input type="file" id="fileInput" accept=".json">
+            <button id="fetchGlobalsButton">Fetch Globals</button>
+            <!--button id="resetGlobalsBtn">Reset Globals</button-->
+            <!--button id="mainEventButton">Main Event</button-->
+            <button id="showAllLogsButton">Show All Logs</button>
+            <button id="fetchLightsButton">Fetch Lights</button> <!-- Added Fetch Lights Button -->
+            <button id="refreshLightStateButton">Refresh Light State</button> <!-- New Refresh Button -->
+        </div>
+        <!--div class="button-group-right">
+            <button id="saveGraphBtn">Save Graph</button>
+            <button id="loadGraphBtn">Load Graph</button>
+            <input type="file" id="fileInput" accept=".json"-->
         </div>
         <div id="globalStatus" style="margin-top: 20px; color: white;">
-            <!-- Status of the IP and API key will be displayed here -->
             <div id="bridgeIP"></div>
             <div id="apiKey"></div>
         </div>
+
+        <!-- Light State Display -->
+        <div id="lightState">
+            <div>Light State:</div>
+            <div id="lightRGB">RGB: --</div>
+            <div id="lightBrightness">Brightness: --</div>
+        </div>
+
+        <!-- Light Selector -->
+        <div id="lightSelector">
+            <label for="lightDropdown">Select Light:</label>
+            <select id="lightDropdown">
+                <!-- Lights will be populated here -->
+            </select>
+        </div>
+    </div>
+
+    <!-- External Log Panel -->
+    <div id="log-panel">
+        <!-- Logs will be displayed here -->
     </div>
 
     <div id="manualIpEntry" style="display:none;">
@@ -93,33 +164,115 @@
     <script src="js/litegraph.js"></script>
     <script src="js/litegraph-editor.js"></script>
     <script src="js/defaults.js"></script>
-    <script src="custom_nodes/PassThroughNode.js"></script>
-    <script src="custom_nodes/pushbutton_node.js"></script>
-    <script src="custom_nodes/execute_node.js"></script>
-    <script src="custom_nodes/hsv_control_node.js"></script>
-    <!---script src="custom_nodes/insteon/InsteonDeviceNode.js"></script--->
-    <script src="custom_nodes/HueLightNodePlus.js"></script>
-    <script src="custom_nodes/HueLightGradeNode.js"></script>
-    <script src="custom_nodes/OffsetValueNode.js"></script>
-    <script src="custom_nodes/HueRotationNode.js"></script>
-    <script src="custom_nodes/FixedLightMergeNode.js"></script>
-    <script src="custom_nodes/HueBridgeConfigNode.js"></script>
-    <script src="custom_nodes/timers/TimeOfDayNode.js"></script>
-    <script src="custom_nodes/timers/TriggerBusNode.js"></script>
-    <script src="custom_nodes/timers/DaysOfTheWeekNode.js"></script>
-    <!--script src="custom_nodes/timers/SunriseSunsetNode.js"></script-->
-    <script src="custom_nodes/timers/SimpleTimerTriggerNode.js"></script>
-    <!--script src="custom_nodes/work.gregt/HSVControlTestNode.js"></script-->
-    <script src="custom_nodes/timers/TimeOfDaySunriseSunset.js"></script>
+    <script src="custom_nodes/CustomMultiplierNode.js"></script>
+    <script src="custom_nodes/Execution/execute_node.js"></script>
+    <script src="custom_nodes/Execution/execute_node_gv.js"></script>
+    <script src="custom_nodes/Execution/pushbutton_node.js"></script>
+    <script src="custom_nodes/govee/GoveeLightControlNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/CustomColorNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/HueLightGradeNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/CustomMultiplierNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/HueRotationNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/OffsetValueNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/hsv_control_node.js"></script>
+    <script src="custom_nodes/Lighting/Hue/HueLightLUTNode.js"></script>
+    <script src="custom_nodes/Lighting/Hue/HueLightNodePlus.js"></script>
+    <script src="custom_nodes/Lighting/Utility_Nodes/MergeLightNode.js"></script>
+    <script src="custom_nodes/Timers/DaysOfTheWeekNode.js"></script>
+    <script src="custom_nodes/Timers/SimpleTimerTriggerNode.js"></script>
+    <script src="custom_nodes/Timers/TimeOfDayNode.js"></script>
+    <script src="custom_nodes/Timers/TimeOfDaySunriseSunset.js"></script>
+    <script src="custom_nodes/Timers/TriggerBusNode.js"></script>
+    <script src="custom_nodes/Utility/PassThroughNode.js"></script>
+
 
     <script>
+        const bridgeIP = '192.168.1.39'; // Your bridge IP address
+        const apiKey = 'GAlIQT79YdUS3pHqO2Plc61koIVy-D5CsG6nBZ2w'; // Your API key
+
         document.getElementById("fetchGlobalsButton").addEventListener("click", function() {
             initializeGlobals();
         });
 
-        document.getElementById("resetGlobalsBtn").addEventListener("click", function() {
+        /*document.getElementById("resetGlobalsBtn").addEventListener("click", function() {
             resetGlobals();
+        });*/
+
+        document.getElementById("fetchLightsButton").addEventListener("click", function() {
+            fetchLights(); // Fetch lights when Fetch Lights button is clicked
         });
+
+        document.getElementById("refreshLightStateButton").addEventListener("click", function() {
+            fetchLightState();
+        });
+
+        function fetchLights() {
+            fetch(`http://${bridgeIP}/api/${apiKey}/lights`)
+                .then(response => response.json())
+                .then(data => {
+                    const lightDropdown = document.getElementById('lightDropdown');
+                    lightDropdown.innerHTML = ''; // Clear existing options
+                    for (const [id, light] of Object.entries(data)) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.text = light.name;
+                        lightDropdown.appendChild(option);
+                    }
+                    lightDropdown.addEventListener('change', fetchLightState); // Attach event listener to dropdown
+                    fetchLightState(); // Fetch state for the first light initially
+                })
+                .catch(error => {
+                    console.error('Error fetching lights:', error);
+                });
+        }
+
+        function fetchLightState() {
+            const selectedLightId = document.getElementById('lightDropdown').value;
+            fetch(`http://${bridgeIP}/api/${apiKey}/lights/${selectedLightId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Light data:', data); // Log the data to ensure correct API response
+
+                    const rgb = data.state.xy ? convertXYtoRGB(data.state.xy[0], data.state.xy[1], data.state.bri) : 'N/A';
+                    const brightness = data.state.bri;
+
+                    console.log(`Converted RGB: ${rgb}`); // Log the converted RGB values
+
+                    // Update the UI with the converted RGB and brightness
+                    document.getElementById('lightRGB').textContent = `RGB: ${rgb.join(', ')}`;
+                    document.getElementById('lightBrightness').textContent = `Brightness: ${brightness}`;
+                })
+                .catch(error => {
+                    console.error('Error fetching light state:', error);
+                });
+}
+
+
+
+        function convertXYtoRGB(x, y, brightness) {
+            // Based on CIE 1931 color space
+            let z = 1.0 - x - y;
+            let Y = brightness / 255.0; // Brightness scaled to [0, 1]
+            let X = (Y / y) * x;
+            let Z = (Y / y) * z;
+
+            // Convert to RGB using the Wide RGB D65 conversion formula
+            let r = X * 1.656492 - Y * 0.354851 - Z * 0.255038;
+            let g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
+            let b = X * 0.051713 - Y * 0.121364 + Z * 1.011530;
+
+            // Apply gamma correction
+            r = r <= 0.0031308 ? 12.92 * r : (1.055 * Math.pow(r, 1.0 / 2.4) - 0.055);
+            g = g <= 0.0031308 ? 12.92 * g : (1.055 * Math.pow(g, 1.0 / 2.4) - 0.055);
+            b = b <= 0.0031308 ? 12.92 * b : (1.055 * Math.pow(b, 1.0 / 2.4) - 0.055);
+
+            // Clip and convert to [0, 255]
+            r = Math.max(0, Math.min(1, r));
+            g = Math.max(0, Math.min(1, g));
+            b = Math.max(0, Math.min(1, b));
+
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
 
         function toggleLightList() {
             const lightList = document.getElementById('lightList');
@@ -128,25 +281,6 @@
             } else {
                 lightList.style.display = 'none';
             }
-        }
-
-        function fetchLights() {
-            fetch('http://localhost:5000/api/lights')
-                .then(response => response.json())
-                .then(data => {
-                    const lightList = document.getElementById('lightList');
-                    lightList.innerHTML = '';
-                    for (const [name, info] of Object.entries(data)) {
-                        const button = document.createElement('button');
-                        button.innerText = name;
-                        button.onclick = () => addLightNode(info.id, name);
-                        lightList.appendChild(button);
-                    }
-                    lightList.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error fetching lights:', error);
-                });
         }
 
         function addLightNode(lightId, lightName) {
@@ -201,11 +335,77 @@
                 reader.readAsText(file);
             }
         });
-    </script>
-<!-- Other HTML content -->
 
-<!-- Place before closing body tag -->
-<script src="globals/fetchGlobals.js"></script>
+        // Function to log events with an optional type
+        function logEvent(message, type = "general") {
+            const logPanel = document.getElementById("log-panel");
+            const logEntry = document.createElement("div");
+
+            // Check if the log is a "Main Event"
+            if (type === "main") {
+                logEntry.classList.add("main-event-log");
+            }
+
+            logEntry.textContent = message;
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight; // Scroll to bottom
+        }
+
+        // Event listener for "Main Event" button
+        /*document.getElementById("mainEventButton").addEventListener("click", function() {
+            const logPanel = document.getElementById("log-panel");
+            const logs = logPanel.children;
+
+            for (let log of logs) {
+                if (log.classList.contains("main-event-log")) {
+                    log.style.display = "block";
+                } else {
+                    log.style.display = "none";
+                }
+            }
+        });*/
+
+        // Event listener for "Show All Logs" button (optional)
+        document.getElementById("showAllLogsButton").addEventListener("click", function() {
+            const logPanel = document.getElementById("log-panel");
+            const logs = logPanel.children;
+
+            for (let log of logs) {
+                log.style.display = "block";
+            }
+        });
+
+        // Example of logging a "Main Event" when the toggle node fires an On/Off command
+        function onToggleCommandSent(command) {
+            if (command === "On" || command === "Off") {
+                logEvent(`Toggle Command: ${command}`, "main");
+            } else {
+                logEvent(`Other Command: ${command}`);
+            }
+        }
+
+        // Call onToggleCommandSent when an On/Off command is sent
+        // This function should be invoked in your toggle node's command handling logic
+        onToggleCommandSent("On");
+        onToggleCommandSent("Off");
+
+    </script>
+    <script src="globals/fetchGlobals.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

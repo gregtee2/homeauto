@@ -49,4 +49,4 @@ class TriggerBusNode extends LiteGraph.LGraphNode {
     }
 }
 
-LiteGraph.registerNodeType("custom/trigger_bus", TriggerBusNode);
+LiteGraph.registerNodeType("Timers/trigger_bus", TriggerBusNode);

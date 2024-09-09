@@ -87,4 +87,4 @@ class SimpleTimerTriggerNode extends LiteGraph.LGraphNode {
 }
 
 // Register the node type with LiteGraph
-LiteGraph.registerNodeType("custom/simple_timer_trigger", SimpleTimerTriggerNode);
+LiteGraph.registerNodeType("Timers/simple_timer_trigger", SimpleTimerTriggerNode);

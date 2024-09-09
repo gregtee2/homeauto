@@ -2,7 +2,8 @@ class HSVControlNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "HSV Control Test";
-        this.size = [360, 256];
+        this.size = [360, 256]; // Forced node size
+
         this.properties = {
             hueShift: 0.10,
             saturation: 0.20,
@@ -14,23 +15,23 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         this.hueShiftSlider = this.addWidget("slider", "Hue Shift", this.properties.hueShift, (value) => {
             this.properties.hueShift = Math.round(value);
             this.updateHueShiftWidgets();
-            this.storeAndMaybeSendHSV();
+            this.debounceStoreAndMaybeSendHSV();
         }, { min: 0, max: 360 });
 
         this.hueShiftInput = this.addWidget("number", "Hue Shift Value", this.properties.hueShift, (value) => {
             this.properties.hueShift = Math.round(value);
             this.updateHueShiftWidgets();
-            this.storeAndMaybeSendHSV();
+            this.debounceStoreAndMaybeSendHSV();
         }, { step: 50 });
 
         this.addWidget("slider", "Saturation", this.properties.saturation, (value) => {
             this.properties.saturation = value;
-            this.storeAndMaybeSendHSV();
+            this.debounceStoreAndMaybeSendHSV();
         }, { min: 0, max: 1 });
 
         this.addWidget("slider", "Brightness", this.properties.brightness, (value) => {
             this.properties.brightness = value;
-            this.storeAndMaybeSendHSV();
+            this.debounceStoreAndMaybeSendHSV();
         }, { min: 0, max: 254 });
 
         // Manual toggle to allow final command sending
@@ -45,38 +46,20 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         this.addOutput("HSV Info", "hsv_info");
 
         this.updateColorSwatch();
+
+        this.debounceTimer = null; // Initialize the debounce timer
     }
 
-    onResize() {
-        this.size = [360, 256];
-    }
-
-    onExecute() {
-        // Directly assign the PushButtonNode output to this trigger
-        let timeTrigger = this.getInputData(0);
-
-        // Direct test: Check if it's true or false and log the outcome
-        //console.log("Time Trigger received (before interpretation):", timeTrigger);
-
-        timeTrigger = this.interpretAsBoolean(timeTrigger);
-
-        //console.log("Time Trigger received (interpreted as boolean):", timeTrigger);
-
-        if (this.properties.enableCommand && timeTrigger === true) {
-            this.sendStoredHSV();
+    debounceStoreAndMaybeSendHSV() {
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
         }
 
-        this.updateColorSwatch();
-    }
-
-    interpretAsBoolean(value) {
-        if (value === "On" || value === "True" || value === "true" || value === 1 || value === true) {
-            return true;
-        } else if (value === "Off" || value === "False" || value === "false" || value === 0 || value === false) {
-            return false;
-        } else {
-            return Boolean(value);
-        }
+        // Set a delay to allow the user to finish moving the slider
+        this.debounceTimer = setTimeout(() => {
+            this.storeAndMaybeSendHSV();
+            this.updateColorSwatch(); // Ensure the swatch is updated after changes
+        }, 300); // Adjust the debounce delay as needed
     }
 
     storeAndMaybeSendHSV() {
@@ -90,7 +73,7 @@ class HSVControlNode extends LiteGraph.LGraphNode {
 
         if (!this.properties.enableCommand) {
             this.setOutputData(0, hsvInfo);
-            console.log("Real-time update sent:", hsvInfo);
+            console.log("Final HSV update sent:", hsvInfo); // Only log the final update
         } else {
             console.log("Stored HSV values:", hsvInfo);
         }
@@ -142,6 +125,14 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         ctx.fillRect(10, this.size[1] - swatchHeight - 10, this.size[0] - 20, swatchHeight);
     }
 
+    onResize() {
+        this.size = [360, 256]; // Reapply the forced node size on resize
+    }
+
+    onStart() {
+        this.size = [360, 256]; // Reapply the forced node size on start
+    }
+
     serialize() {
         const data = super.serialize();
         data.properties = this.properties;
@@ -157,11 +148,7 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         this.updateHueShiftWidgets();
         this.updateColorSwatch();
     }
-
-    onStart() {
-        this.size = [360, 256];
-    }
 }
 
 // Register the node type with LiteGraph
-LiteGraph.registerNodeType("custom/hsv_control", HSVControlNode);
+LiteGraph.registerNodeType("Lighting/CC_Control_Nodes/hsv_control", HSVControlNode);

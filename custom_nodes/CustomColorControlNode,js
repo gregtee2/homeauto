@@ -1,0 +1,114 @@
+class CustomColorControlNode extends LiteGraph.LGraphNode {
+    constructor() {
+        super();
+        this.title = "Custom Color Control";
+        this.size = [360, 300]; // Adjust the size according to the number of sliders
+
+        this.properties = {
+            red: 255,
+            green: 0,
+            blue: 0,
+            colorTemperature: 2700, // Example default value
+            hue: 120, // Default to green in the red-to-green spectrum
+            saturation: 1.0,
+            brightness: 254,
+            enableCommand: false,  // Toggle to enable/disable command sending
+            lastColorInfo: { red: 255, green: 0, blue: 0, colorTemperature: 2700, hue: 120, saturation: 1.0, brightness: 254 }
+        };
+
+        // RGB sliders
+        this.addWidget("slider", "Red", this.properties.red, (value) => {
+            this.properties.red = value;
+            this.updateColorInfo();
+        }, { min: 0, max: 255 });
+
+        this.addWidget("slider", "Green", this.properties.green, (value) => {
+            this.properties.green = value;
+            this.updateColorInfo();
+        }, { min: 0, max: 255 });
+
+        this.addWidget("slider", "Blue", this.properties.blue, (value) => {
+            this.properties.blue = value;
+            this.updateColorInfo();
+        }, { min: 0, max: 255 });
+
+        // Color Temperature slider
+        this.addWidget("slider", "Color Temp (K)", this.properties.colorTemperature, (value) => {
+            this.properties.colorTemperature = value;
+            this.updateColorInfo();
+        }, { min: 1800, max: 6500 });
+
+        // Hue slider (Red to Green)
+        this.addWidget("slider", "Hue (Red-Green)", this.properties.hue, (value) => {
+            this.properties.hue = value;
+            this.updateColorInfo();
+        }, { min: 0, max: 120 });  // Assuming hue 0 is red and 120 is green
+
+        // Saturation and Brightness sliders
+        this.addWidget("slider", "Saturation", this.properties.saturation, (value) => {
+            this.properties.saturation = value;
+            this.updateColorInfo();
+        }, { min: 0, max: 1 });
+
+        this.addWidget("slider", "Brightness", this.properties.brightness, (value) => {
+            this.properties.brightness = value;
+            this.updateColorInfo();
+        }, { min: 0, max: 254 });
+
+        // Manual toggle to allow final command sending
+        this.addWidget("toggle", "Enable Command", this.properties.enableCommand, (value) => {
+            this.properties.enableCommand = value;
+            console.log("Enable Command set to:", value);
+        });
+
+        // New input to receive the trigger signal
+        this.addInput("Time Trigger", "boolean");
+
+        this.addOutput("Color Info", "color_info");
+
+        this.updateColorInfo();
+    }
+
+    updateColorInfo() {
+        const colorInfo = {
+            red: this.properties.red,
+            green: this.properties.green,
+            blue: this.properties.blue,
+            colorTemperature: this.properties.colorTemperature,
+            hue: this.properties.hue,
+            saturation: this.properties.saturation,
+            brightness: this.properties.brightness
+        };
+
+        this.properties.lastColorInfo = colorInfo;
+
+        if (!this.properties.enableCommand) {
+            this.setOutputData(0, colorInfo);
+            console.log("Final Color update sent:", colorInfo);
+        } else {
+            console.log("Stored Color values:", colorInfo);
+        }
+    }
+
+    onDrawForeground(ctx) {
+        const swatchHeight = 20;
+        const rgb = `rgb(${this.properties.red}, ${this.properties.green}, ${this.properties.blue})`;
+        ctx.fillStyle = rgb;
+        ctx.fillRect(10, this.size[1] - swatchHeight - 10, this.size[0] - 20, swatchHeight);
+    }
+
+    serialize() {
+        const data = super.serialize();
+        data.properties = this.properties;
+        return data;
+    }
+
+    configure(data) {
+        super.configure(data);
+        this.properties = data.properties || {
+            red: 255, green: 0, blue: 0, colorTemperature: 2700, hue: 120, saturation: 1.0, brightness: 254, enableCommand: false, lastColorInfo: { red: 255, green: 0, blue: 0, colorTemperature: 2700, hue: 120, saturation: 1.0, brightness: 254 }
+        };
+    }
+}
+
+LiteGraph.registerNodeType("custom/color_control", CustomColorControlNode);
