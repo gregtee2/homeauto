@@ -2,7 +2,7 @@ class CustomColorNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "Custom Color Control";
-        this.size = [552.12, 414.89];
+        this.size = [552, 514];
         this.properties = {
             red: 128,
             green: 128,
@@ -432,7 +432,7 @@ class CustomColorNode extends LiteGraph.LGraphNode {
     }
 
     onResize() {
-        this.size = [552.12, 414.89];
+        this.size = [552, 515];
     }
 }
 

@@ -36,7 +36,10 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
         this.lastState = null;
 
         // Automatically fetch geolocation on load
-        this.initializeTimes();  // <-- Add this line
+        this.initializeTimes();
+
+        // Schedule recalculation after midnight
+        this.scheduleMidnightRecalculation();
     }
 
     // New Method: Initialize Times
@@ -51,6 +54,22 @@ class TimeOfDaySunriseSunset extends LiteGraph.LGraphNode {
             this.geolocationAvailable = true;
             this.calculateSunTimes();
         }
+    }
+
+    // Method to schedule recalculation after midnight
+    scheduleMidnightRecalculation() {
+        const now = new Date();
+        
+        // Calculate the time remaining until midnight
+        const timeUntilMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0) - now;
+
+        console.log(`Scheduling recalculation to occur in ${timeUntilMidnight / 1000 / 60} minutes`);
+
+        // Schedule recalculation
+        setTimeout(() => {
+            this.calculateSunTimes();   // Recalculate the sunrise/sunset times
+            this.scheduleMidnightRecalculation();  // Reschedule for the next midnight
+        }, timeUntilMidnight);
     }
 
     setupWidgets() {

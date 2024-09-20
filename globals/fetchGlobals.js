@@ -1,3 +1,121 @@
+document.addEventListener("DOMContentLoaded", function() {
+    // Fetch Globals Button Click Event
+    const fetchGlobalsButton = document.getElementById('fetchGlobalsButton');
+    if (fetchGlobalsButton) {
+        fetchGlobalsButton.addEventListener('click', () => {
+            const storedBridgeIp = localStorage.getItem('hueBridgeIp');
+            const storedApiKey = localStorage.getItem('hueApiKey');
+
+            if (storedBridgeIp && storedApiKey) {
+                alert('Globals already fetched: Using stored IP and API key.');
+                displayStoredGlobals(storedBridgeIp, storedApiKey);
+            } else {
+                const manualIpEntry = document.getElementById('manualIpEntry');
+                if (manualIpEntry) {
+                    manualIpEntry.style.display = 'block';
+                } else {
+                    console.error("Element 'manualIpEntry' not found.");
+                }
+            }
+        });
+    } else {
+        console.error("Element 'fetchGlobalsButton' not found.");
+    }
+
+    // Submit IP Button Click Event
+    const submitIpButton = document.getElementById('submitIpButton');
+    if (submitIpButton) {
+        submitIpButton.addEventListener('click', () => {
+            const bridgeIpField = document.getElementById('bridgeIpField');
+            const bridgeIp = bridgeIpField ? bridgeIpField.value.trim() : null;
+            
+            if (bridgeIp) {
+                fetch(`http://${bridgeIp}/api`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ devicetype: 'my_hue_app#local' }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data[0]?.success?.username) {
+                        const apiKey = data[0].success.username;
+
+                        // Store the Bridge IP and API Key
+                        localStorage.setItem('hueBridgeIp', bridgeIp);
+                        localStorage.setItem('hueApiKey', apiKey);
+
+                        // Update the UI
+                        displayStoredGlobals(bridgeIp, apiKey);
+
+                        // Provide feedback to the user
+                        const apiKeyButton = document.getElementById('apiKeyButton');
+                        if (apiKeyButton) {
+                            apiKeyButton.innerText = 'API Key Retrieved!';
+                            apiKeyButton.disabled = true;
+                        }
+                        
+                        alert(`API Key obtained: ${apiKey}`);
+
+                        // Hide manual IP entry UI
+                        const manualIpEntry = document.getElementById('manualIpEntry');
+                        if (manualIpEntry) manualIpEntry.style.display = 'none';
+
+                        const apiKeyRetrieval = document.getElementById('apiKeyRetrieval');
+                        if (apiKeyRetrieval) apiKeyRetrieval.style.display = 'none';
+                    } else {
+                        alert('Failed to obtain API key. Ensure you press the Hue Bridge button first.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error obtaining API key:', error);
+                    alert('Error obtaining API key. Check the console for details.');
+                });
+            } else {
+                alert('Please enter a valid IP address.');
+            }
+        });
+    } else {
+        console.error("Element 'submitIpButton' not found.");
+    }
+
+    // Reset Globals Button Click Event
+    /*const resetGlobalsBtn = document.getElementById('resetGlobalsBtn');
+    if (resetGlobalsBtn) {
+        resetGlobalsBtn.addEventListener('click', () => {
+            localStorage.removeItem('hueBridgeIp');
+            localStorage.removeItem('hueApiKey');
+            alert('Globals have been reset. Please fetch again.');
+
+            // Clear the displayed globals
+            displayStoredGlobals('Not set', 'Not set');
+        });
+    } else {
+        console.error("Element 'resetGlobalsBtn' not found.");
+    }*/
+
+    // Function to display the stored globals
+    function displayStoredGlobals(bridgeIp, apiKey) {
+        const bridgeIpElement = document.getElementById('bridgeIP');
+        if (bridgeIpElement) {
+            bridgeIpElement.textContent = `Bridge IP: ${bridgeIp}`;
+        } else {
+            console.error("Element 'bridgeIP' not found.");
+        }
+
+        const apiKeyElement = document.getElementById('apiKey');
+        if (apiKeyElement) {
+            apiKeyElement.textContent = `API Key: ${apiKey}`;
+        } else {
+            console.error("Element 'apiKey' not found.");
+        }
+    }
+});
+
+
+
+/*//un-updated to even listening code
 document.getElementById('fetchGlobalsButton').addEventListener('click', () => {
     const storedBridgeIp = localStorage.getItem('hueBridgeIp');
     const storedApiKey = localStorage.getItem('hueApiKey');
@@ -63,3 +181,4 @@ function displayStoredGlobals(bridgeIp, apiKey) {
     document.getElementById('bridgeIP').textContent = `Bridge IP: ${bridgeIp}`;
     document.getElementById('apiKey').textContent = `API Key: ${apiKey}`;
 }
+*/

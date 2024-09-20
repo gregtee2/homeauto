@@ -1,3 +1,6 @@
+
+
+//prior pushbutton code before event handler inserts
 class PushButtonNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
@@ -11,17 +14,36 @@ class PushButtonNode extends LiteGraph.LGraphNode {
     }
 
     onExecute() {
-        // Output the state only if it has changed
-        if (this.properties.state !== this.lastState) {
+        // Ensure lastState is initialized properly if it's the first run
+        if (typeof this.lastState === 'undefined') {
             this.lastState = this.properties.state;
+        }
+
+        // Only trigger the output if the state has changed
+        if (this.properties.state !== this.lastState) {
+            console.log(`PushButtonNode - State change detected, processing...`);
+            this.lastState = this.properties.state; // Update the last known state
+            
             clearTimeout(this.debounceTimeout);
             this.debounceTimeout = setTimeout(() => {
                 this.setOutputData(0, this.properties.state);
-                console.log(`PushButtonNode - Outputting state: ${this.properties.state}`);
-                this.triggerSlot(0); // Propagate the value
-            }, 200); // Adjust debounce delay if needed
+                console.log(`PushButtonNode - Outputting new state: ${this.properties.state}`);
+                this.triggerSlot(0); // Trigger the connected node
+            }, 500); // Adjust debounce delay as necessary
+        } else {
+            // Add condition to throttle "no change" logs
+            if (!this.skipNoChangeLog) {
+                //console.log(`PushButtonNode - No state change, skipping output.`);
+                this.skipNoChangeLog = true;
+                setTimeout(() => { this.skipNoChangeLog = false; }, 5000); // Log only every 5 seconds
+            }
         }
     }
+
+
+
+
+
 
     onMouseDown(e, pos) {
         if (pos[0] >= 0 && pos[0] <= this.size[0] && pos[1] >= 0 && pos[1] <= this.size[1]) {

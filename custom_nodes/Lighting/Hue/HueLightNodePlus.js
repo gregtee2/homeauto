@@ -7,7 +7,7 @@
 
 
 
-
+//GTP 4.0 code
 class HueLightNodePlus extends LiteGraph.LGraphNode {
     constructor() {
         super();
