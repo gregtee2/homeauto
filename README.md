@@ -1,4 +1,60 @@
 Refer to InstallationReadMe.txt for instructions on install and initial setup.
+
+# What's new? 9/20/24
+
+## Git Push Summary: Event Bus Architecture, Device Bus Node, and HSV Node with Color Swatch Pickers
+Since the last Git push, we have introduced significant improvements to the system’s architecture and features. This summary focuses on the Event Bus architecture, the Device Bus Node, and the new HSV Node with color swatch pickers.
+
+# 1. Event Bus Architecture Implementation
+The system now fully embraces an event-driven architecture with the Event Bus serving as the communication hub between nodes. This shift greatly enhances scalability, modularity, and flexibility.
+
+# A. Event Bus Overview:
+Event-Driven Workflow: Events are now propagated through the Event Bus, which distributes them to relevant nodes, decoupling components and improving modularity.
+Decoupling: Components no longer need direct connections. Instead, they communicate via the Event Bus, making the system more adaptable and easier to extend.
+# B. New Nodes Supporting Event Bus:
+EventBusHandlerNode:
+
+# Role: Listens for and routes events published on the Event Bus, ensuring commands reach the correct devices.
+Functionality: Processes event types and forwards them to downstream nodes, such as the ExecuteNode.
+Trigger Node (Time-Based and Manual Triggers):
+
+# Role: Triggers time-based or manual events (e.g., sunset, 10 PM) and publishes them to the Event Bus.
+Device Integration: Allows users to attach devices or groups to triggers, which are sent through the Event Bus to control the devices.
+ExecuteEventNode:
+
+# Role: Receives commands from the Event Bus and sends the appropriate API requests to devices (Hue, Govee, etc.).
+Enhancements: Now efficiently processes event-driven commands, ensuring precise execution based on trigger conditions.
+# 2. Device Bus Node Enhancements
+The Device Bus Node has been optimized to improve device management and trigger integration. It plays a central role in aggregating device data and attaching it to various triggers.
+
+# A. Device Aggregation and Management:
+Purpose: The Device Bus Node gathers device data (such as Hue and Govee lights) and prepares it for event-based control.
+Trigger Integration: Attaches triggers (manual or time-based) to devices, simplifying the process of controlling multiple devices simultaneously.
+Enhanced Data Handling: Improved validation of device data and handling of multiple devices in a single flow.
+# B. Event Publishing:
+Once devices are attached to the triggers, the Device Bus Node sends events to the Event Bus, which manages routing to the ExecuteEventNode for action.
+# 3. HSV Node with Color Swatch Pickers
+The new HSV Node significantly enhances user control over lighting configurations, with a focus on color selection and adjustment.
+
+# A. HSV Control Node:
+Purpose: Provides control over hue, saturation, and brightness for smart lighting systems.
+Color Swatch Picker: Users can interactively choose colors via a swatch picker, improving ease of use and accuracy for color adjustments.
+# B. Real-Time Visual Feedback:
+The HSV Node provides real-time color feedback via the swatch picker on the node itself, allowing users to see their color choices immediately.
+Color Transformation: The node converts the selected color into HSV or RGB format, depending on the device, and passes it to the Event Bus for execution.
+# 4. Key Benefits of the Event Bus, Device Bus Node, and HSV Node:
+Scalability: The Event Bus and Device Bus Node architecture enable seamless addition of new devices and triggers.
+Modularity: Nodes are designed to operate independently, making future updates and maintenance easier.
+Enhanced User Experience: The HSV Node’s color swatch picker and real-time feedback simplify user interaction with lighting control.
+Efficient Event Routing: The Event Bus ensures commands and events are handled efficiently across multiple devices and triggers.
+Next Steps:
+Further Testing: Additional testing of the Event Bus system and Device Bus Node with complex event scenarios.
+Documentation: Update the system documentation to reflect the new Event Bus architecture and Device Bus Node functionality.
+Expand Device Support: Continue working on device integration, such as additional smart lights and other IoT devices.
+
+
+
+
 # What's new? 9/09/24
 
 Project Overview:
