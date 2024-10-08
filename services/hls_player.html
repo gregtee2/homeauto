@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>HLS Player</title>
+  <!-- Include hls.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+  <!-- Video element -->
+  <video id="video" controls autoplay></video>
+  <!-- Script to initialize hls.js -->
+  <script>
+    var video = document.getElementById('video');
+    var videoSrc = 'http://localhost:8888/camera1/index.m3u8';
+
+    if (Hls.isSupported()) {
+      var hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        video.play();
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // For Safari browsers
+      video.src = videoSrc;
+      video.addEventListener('loadedmetadata', function() {
+        video.play();
+      });
+    } else {
+      alert('Your browser does not support HLS playback.');
+    }
+  </script>
+</body>
+</html>

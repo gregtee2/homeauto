@@ -1,100 +1,76 @@
+// File: src/nodes/HSVControlNode.js
+
 class HSVControlNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
         this.title = "HSV Control Test";
-
-        // Set the default size explicitly in the constructor
-        this.size = [425, 235]; 
+        this.size = [425, 235];
 
         this.properties = {
             hueShift: 0.10,
             saturation: 0.20,
             brightness: 128,
-            enableCommand: false,  // Toggle to enable/disable command sending
-            lastHsvInfo: { hue: 0, saturation: 1.0, brightness: 254 }  // Store the last HSV settings
+            enableCommand: false,
+            lastHsvInfo: { hue: 0, saturation: 1.0, brightness: 254 }
         };
 
-        // Existing widgets for sliders
-        this.hueShiftSlider = this.addWidget("slider", "Hue Shift", this.properties.hueShift, (value) => {
-            this.properties.hueShift = Math.round(value);
-            this.updateHueShiftWidgets();
-            this.debounceStoreAndMaybeSendHSV();
-        }, { min: 0, max: 360 });
+        this.selectedColor = null;
+        this.memoizedHSVToRGB = {};
+        this.debounceTimer = null;
 
-        this.saturationSlider = this.addWidget("slider", "Saturation", this.properties.saturation, (value) => {
-            this.properties.saturation = value;
-            this.debounceStoreAndMaybeSendHSV();
-        }, { min: 0, max: 1 });
+        this.sliders = {}; // Initialize an object to hold slider references
 
-        this.brightnessSlider = this.addWidget("slider", "Brightness", this.properties.brightness, (value) => {
-            this.properties.brightness = value;
-            this.debounceStoreAndMaybeSendHSV();
-        }, { min: 0, max: 254 });
+        const slidersConfig = [
+            { name: "Hue Shift", property: "hueShift", min: 0, max: 360, type: "slider" },
+            { name: "Saturation", property: "saturation", min: 0, max: 1, type: "slider" },
+            { name: "Brightness", property: "brightness", min: 0, max: 254, type: "slider" }
+        ];
 
+        slidersConfig.forEach(({ name, property, min, max, type }) => {
+            const slider = this.addWidget(type, name, this.properties[property], (value) => {
+                this.properties[property] = value;
+                this.updateColorSwatch(); // Immediate visual update
+                this.debounceStoreAndSendHSV(); // Debounce API updates
+            }, { min, max });
+            this.sliders[property] = slider; // Store the slider reference
+        });
+
+        // Manual toggle to allow final command sending
         this.addWidget("toggle", "Enable Time Trigger", this.properties.enableCommand, (value) => {
             this.properties.enableCommand = value;
         });
 
-        // Restoring the HSV Info output
+        // Output widget
         this.addOutput("HSV Info", "hsv_info");
 
-        // Colors represented as clickable boxes, aligned horizontally
+        // Color swatches
         this.colorOptions = [
-            { color: "#FF0000", hsv: { hue: 0, saturation: 1, brightness: 254 } },   // Red
-            { color: "#FFA500", hsv: { hue: 30, saturation: 1, brightness: 254 } },  // Orange
-            { color: "#FFFF00", hsv: { hue: 60, saturation: 1, brightness: 254 } },  // Yellow
-            { color: "#00FF00", hsv: { hue: 120, saturation: 1, brightness: 254 } }, // Green
-            { color: "#0000FF", hsv: { hue: 240, saturation: 1, brightness: 254 } }, // Blue
-            { color: "#00FFFF", hsv: { hue: 180, saturation: 1, brightness: 254 } }, // Cyan
-            { color: "#800080", hsv: { hue: 270, saturation: 1, brightness: 254 } }, // Purple
-            { color: "#FFFFFF", hsv: { hue: 0, saturation: 0, brightness: 254 } }    // White
+            { color: "#FF0000", hsv: { hue: 0, saturation: 1, brightness: 254 } },    // Red
+            { color: "#FFA500", hsv: { hue: 30, saturation: 1, brightness: 254 } },   // Orange
+            { color: "#FFFF00", hsv: { hue: 60, saturation: 1, brightness: 254 } },   // Yellow
+            { color: "#00FF00", hsv: { hue: 120, saturation: 1, brightness: 254 } },  // Green
+            { color: "#0000FF", hsv: { hue: 240, saturation: 1, brightness: 254 } },  // Blue
+            { color: "#00FFFF", hsv: { hue: 180, saturation: 1, brightness: 254 } },  // Cyan
+            { color: "#800080", hsv: { hue: 270, saturation: 1, brightness: 254 } },  // Purple
+            { color: "#FFFFFF", hsv: { hue: 0, saturation: 0, brightness: 254 } }     // White
         ];
-
-        this.selectedColor = null; // To track which color box is clicked
     }
 
-    // Override the serialization function to store the node size explicitly
-    onSerialize(o) {
-        o.size = this.size; // Ensure the size is serialized
-        o.properties = this.properties;
-    }
-
-    // Override the configuration function to restore the node size
-    onConfigure(o) {
-        this.size = o.size || [425, 235]; // Restore the size from serialized data
-        this.properties = o.properties;
-    }
-
-    // Function to set the HSV values when a color box is clicked
-    setHSV(hsv) {
-        this.properties.hueShift = hsv.hue;
-        this.properties.saturation = hsv.saturation;
-        this.properties.brightness = hsv.brightness;
-
-        // Update all sliders
-        this.updateHueShiftWidgets();
-        this.saturationSlider.value = hsv.saturation;
-        this.brightnessSlider.value = hsv.brightness;
-
-        // Trigger the debounce and send the new HSV values
-        this.debounceStoreAndMaybeSendHSV();
-    }
-
-    debounceStoreAndMaybeSendHSV() {
+    // Use debounce for API updates but allow instant visual updates
+    debounceStoreAndSendHSV() {
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
         }
 
-        // Set a delay to allow the user to finish moving the slider
+        // Debounce the actual API updates (e.g., 200ms delay)
         this.debounceTimer = setTimeout(() => {
-            this.storeAndMaybeSendHSV();
-            this.updateColorSwatch(); // Ensure the swatch is updated after changes
-        }, 300); // Adjust the debounce delay as needed
+            this.storeAndSendHSV();
+        }, 200);
     }
 
-    storeAndMaybeSendHSV() {
+    storeAndSendHSV() {
         const hsvInfo = {
-            hue: this.properties.hueShift / 360,
+            hue: this.properties.hueShift / 360, // Convert to 0-1 range
             saturation: this.properties.saturation,
             brightness: this.properties.brightness
         };
@@ -106,12 +82,12 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         }
     }
 
-    updateHueShiftWidgets() {
-        this.hueShiftSlider.value = this.properties.hueShift;
-    }
-
     updateColorSwatch() {
-        const rgb = this.hsvToRgb(this.properties.hueShift / 360, this.properties.saturation, this.properties.brightness / 254);
+        const rgb = this.hsvToRgb(
+            this.properties.hueShift / 360,
+            this.properties.saturation,
+            this.properties.brightness / 254
+        );
         const color = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
         this.boxcolor = color;
 
@@ -120,283 +96,123 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         }
     }
 
-    // Override the drawing function to draw color boxes and color swatch
-    onDrawForeground(ctx) {
-        const boxSize = 40;  // Size of each color box
-        const margin = 10;   // Margin between color boxes
-        const startX = 10;   // Starting X position for the color boxes
-        const startY = this.size[1] - 90; // Starting Y position for the color boxes
+    // Use memoization to optimize the hsvToRgb function
+    hsvToRgb(h, s, v) {
+        const key = `${h}-${s}-${v}`;
+        if (this.memoizedHSVToRGB[key]) {
+            return this.memoizedHSVToRGB[key];
+        }
 
-        // Draw each color box
+        const i = Math.floor(h * 6);
+        const f = h * 6 - i;
+        const p = v * (1 - s);
+        const q = v * (1 - f * s);
+        const t = v * (1 - (1 - f) * s);
+
+        const mappings = [
+            [v, t, p], [q, v, p], [p, v, t],
+            [p, q, v], [t, p, v], [v, p, q]
+        ];
+
+        const [r, g, b] = mappings[i % 6];
+        const result = [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+
+        this.memoizedHSVToRGB[key] = result;
+        return result;
+    }
+
+    drawColorBoxes(ctx) {
+        const boxSize = 40;
+        const margin = 10;
+        const startX = 10;
+        const startY = this.size[1] - 90;
+
         this.colorOptions.forEach((option, index) => {
             const x = startX + (index * (boxSize + margin));
             const y = startY;
 
-            // Draw color box
             ctx.fillStyle = option.color;
             ctx.fillRect(x, y, boxSize, boxSize);
 
-            // Add a border if this box is selected
             if (this.selectedColor === option.color) {
                 ctx.strokeStyle = "black";
                 ctx.lineWidth = 2;
                 ctx.strokeRect(x, y, boxSize, boxSize);
             }
         });
+    }
 
-        // Draw the color swatch at the bottom to show the color being sent to the light
+    onDrawForeground(ctx) {
+        this.drawColorBoxes(ctx);
+
         const swatchHeight = 20;
         ctx.fillStyle = this.boxcolor || 'black';
         ctx.fillRect(10, this.size[1] - swatchHeight - 10, this.size[0] - 20, swatchHeight);
     }
 
-    // Handle mouse click events to detect when a color box is clicked
     onMouseDown(event, localPos, graphCanvas) {
-        const boxSize = 40;  // Size of each color box
-        const margin = 10;   // Margin between color boxes
-        const startX = 10;   // Starting X position for the color boxes
-        const startY = this.size[1] - 90; // Starting Y position for the color boxes
+        const boxSize = 40;
+        const margin = 10;
+        const startX = 10;
+        const startY = this.size[1] - 90;
 
-        // Check if the click was within one of the color boxes
         this.colorOptions.forEach((option, index) => {
             const x = startX + (index * (boxSize + margin));
             const y = startY;
 
-            // Check if click is within the bounds of this box
             if (
                 localPos[0] > x && localPos[0] < x + boxSize &&
                 localPos[1] > y && localPos[1] < y + boxSize
             ) {
-                // Update the selected color and set HSV values
                 this.selectedColor = option.color;
                 this.setHSV(option.hsv);
             }
         });
     }
 
-    hsvToRgb(h, s, v) {
-        let r, g, b;
-        let i = Math.floor(h * 6);
-        let f = h * 6 - i;
-        let p = v * (1 - s);
-        let q = v * (1 - f * s);
-        let t = v * (1 - (1 - f) * s);
+    setHSV(hsv) {
+        this.properties.hueShift = hsv.hue;           // hsv.hue in degrees (0-360)
+        this.properties.saturation = hsv.saturation;  // hsv.saturation (0-1)
+        this.properties.brightness = hsv.brightness;  // hsv.brightness (0-254)
 
-        switch (i % 6) {
-            case 0: r = v, g = t, b = p; break;
-            case 1: r = q, g = v, b = p; break;
-            case 2: r = p, g = v, b = t; break;
-            case 3: r = p, g = q, b = v; break;
-            case 4: r = t, g = p, b = v; break;
-            case 5: r = v, g = p, b = q; break;
+        // Update the sliders to reflect new values
+        if (this.sliders.hueShift) {
+            this.sliders.hueShift.value = this.properties.hueShift;
+        }
+        if (this.sliders.saturation) {
+            this.sliders.saturation.value = this.properties.saturation;
+        }
+        if (this.sliders.brightness) {
+            this.sliders.brightness.value = this.properties.brightness;
         }
 
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        // Request a redraw of the node UI
+        this.setDirtyCanvas(true);
+
+        this.updateColorSwatch(); // Immediate visual update
+        this.debounceStoreAndSendHSV(); // Debounced API update
     }
 
-    // Force the node size on resize
     onResize() {
-        this.size = [425, 235]; 
+        this.size = [425, 235];
     }
 
-    // Force the node size when the graph starts
     onStart() {
-        this.size = [425, 235]; 
+        this.size = [425, 235];
     }
 
-    // Override the serialization method
     serialize() {
         const data = super.serialize();
-        data.properties = this.properties;
+        data.properties = { ...this.properties };
         return data;
     }
 
-    // Override the configuration method
     configure(data) {
         super.configure(data);
-        this.properties = data.properties || {
-            hueShift: 0, saturation: 1.0, brightness: 254, enableCommand: false, lastHsvInfo: { hue: 0, saturation: 1.0, brightness: 254 }
-        };
-
-        this.updateHueShiftWidgets();
+        this.properties = { ...this.properties, ...data.properties };
         this.updateColorSwatch();
     }
 }
 
 // Register the node type with LiteGraph
 LiteGraph.registerNodeType("Lighting/CC_Control_Nodes/hsv_control", HSVControlNode);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*class HSVControlNode extends LiteGraph.LGraphNode {
-    constructor() {
-        super();
-        this.title = "HSV Control Test";
-        this.size = [360, 256]; // Forced node size
-
-        this.properties = {
-            hueShift: 0.10,
-            saturation: 0.20,
-            brightness: 128,
-            enableCommand: false,  // Toggle to enable/disable command sending
-            lastHsvInfo: { hue: 0, saturation: 1.0, brightness: 254 }  // Store the last HSV settings
-        };
-
-        this.hueShiftSlider = this.addWidget("slider", "Hue Shift", this.properties.hueShift, (value) => {
-            this.properties.hueShift = Math.round(value);
-            this.updateHueShiftWidgets();
-            this.debounceStoreAndMaybeSendHSV();
-        }, { min: 0, max: 360 });
-
-        this.hueShiftInput = this.addWidget("number", "Hue Shift Value", this.properties.hueShift, (value) => {
-            this.properties.hueShift = Math.round(value);
-            this.updateHueShiftWidgets();
-            this.debounceStoreAndMaybeSendHSV();
-        }, { step: 50 });
-
-        this.addWidget("slider", "Saturation", this.properties.saturation, (value) => {
-            this.properties.saturation = value;
-            this.debounceStoreAndMaybeSendHSV();
-        }, { min: 0, max: 1 });
-
-        this.addWidget("slider", "Brightness", this.properties.brightness, (value) => {
-            this.properties.brightness = value;
-            this.debounceStoreAndMaybeSendHSV();
-        }, { min: 0, max: 254 });
-
-        // Manual toggle to allow final command sending
-        this.addWidget("toggle", "Enable Time Trigger", this.properties.enableCommand, (value) => {
-            this.properties.enableCommand = value;
-            console.log("Enable Command set to:", value);
-        });
-
-        // New input to receive the trigger signal
-        this.addInput("Time Trigger", "boolean");
-
-        this.addOutput("HSV Info", "hsv_info");
-
-        this.updateColorSwatch();
-
-        this.debounceTimer = null; // Initialize the debounce timer
-    }
-
-    debounceStoreAndMaybeSendHSV() {
-        if (this.debounceTimer) {
-            clearTimeout(this.debounceTimer);
-        }
-
-        // Set a delay to allow the user to finish moving the slider
-        this.debounceTimer = setTimeout(() => {
-            this.storeAndMaybeSendHSV();
-            this.updateColorSwatch(); // Ensure the swatch is updated after changes
-        }, 300); // Adjust the debounce delay as needed
-    }
-
-    storeAndMaybeSendHSV() {
-        const hsvInfo = {
-            hue: this.properties.hueShift / 360,
-            saturation: this.properties.saturation,
-            brightness: this.properties.brightness
-        };
-
-        this.properties.lastHsvInfo = hsvInfo;
-
-        if (!this.properties.enableCommand) {
-            this.setOutputData(0, hsvInfo);
-            console.log("Final HSV update sent:", hsvInfo); // Only log the final update
-        } else {
-            console.log("Stored HSV values:", hsvInfo);
-        }
-    }
-
-    sendStoredHSV() {
-        this.setOutputData(0, this.properties.lastHsvInfo);
-        console.log("HSVControlTestNode - Final command sent to light:", this.properties.lastHsvInfo);
-    }
-
-    updateHueShiftWidgets() {
-        this.hueShiftSlider.value = this.properties.hueShift;
-        this.hueShiftInput.value = this.properties.hueShift;
-    }
-
-    updateColorSwatch() {
-        const rgb = this.hsvToRgb(this.properties.hueShift / 360, this.properties.saturation, this.properties.brightness / 254);
-        const color = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
-        this.boxcolor = color;
-
-        if (this.graph && this.graph.canvas) {
-            this.graph.canvas.draw(true, true);
-        }
-    }
-
-    hsvToRgb(h, s, v) {
-        let r, g, b;
-        let i = Math.floor(h * 6);
-        let f = h * 6 - i;
-        let p = v * (1 - s);
-        let q = v * (1 - f * s);
-        let t = v * (1 - (1 - f) * s);
-
-        switch (i % 6) {
-            case 0: r = v, g = t, b = p; break;
-            case 1: r = q, g = v, b = p; break;
-            case 2: r = p, g = v, b = t; break;
-            case 3: r = p, g = q, b = v; break;
-            case 4: r = t, g = p, b = v; break;
-            case 5: r = v, g = p, b = q; break;
-        }
-
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-    }
-
-    onDrawForeground(ctx) {
-        const swatchHeight = 20;
-        ctx.fillStyle = this.boxcolor || 'black';
-        ctx.fillRect(10, this.size[1] - swatchHeight - 10, this.size[0] - 20, swatchHeight);
-    }
-
-    onResize() {
-        this.size = [360, 256]; // Reapply the forced node size on resize
-    }
-
-    onStart() {
-        this.size = [360, 256]; // Reapply the forced node size on start
-    }
-
-    serialize() {
-        const data = super.serialize();
-        data.properties = this.properties;
-        return data;
-    }
-
-    configure(data) {
-        super.configure(data);
-        this.properties = data.properties || {
-            hueShift: 0, saturation: 1.0, brightness: 254, enableCommand: false, lastHsvInfo: { hue: 0, saturation: 1.0, brightness: 254 }
-        };
-
-        this.updateHueShiftWidgets();
-        this.updateColorSwatch();
-    }
-}
-
-// Register the node type with LiteGraph
-LiteGraph.registerNodeType("Lighting/CC_Control_Nodes/hsv_control", HSVControlNode);*/

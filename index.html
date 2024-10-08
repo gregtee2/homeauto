@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiteGraph Example Integration</title>
+
+    <!-- Link to LiteGraph CSS styles -->
     <link rel="stylesheet" type="text/css" href="css/litegraph.css">
     <link rel="stylesheet" type="text/css" href="css/litegraph-editor.css">
     <link rel="stylesheet" type="text/css" href="css/style.css">
+
     <style>
+        /* Set up a fullscreen layout with no margins or scrollbars */
         body, html {
             margin: 0;
             padding: 0;
@@ -13,11 +19,15 @@
             height: 100%;
             overflow: hidden;
         }
+
+        /* Main container styling */
         #main {
             width: 100%;
             height: 100%;
             position: relative;
         }
+
+        /* Light list container, hidden initially */
         #lightList {
             position: absolute;
             top: 50px;
@@ -27,17 +37,21 @@
             color: white;
             padding: 10px;
             border-radius: 5px;
-            display: none; /* Initially hidden */
+            display: none;
             z-index: 5;
         }
+
+        /* Control buttons styling */
         #controls {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 10;
             display: flex;
-            gap: 10px; /* Space between buttons */
+            gap: 10px;
         }
+
+        /* Individual button styling */
         #controls button {
             padding: 10px;
             background-color: #85858570;
@@ -47,20 +61,18 @@
             cursor: pointer;
             font-size: 14px;
         }
+
+        /* Button hover styling */
         #controls button:hover {
             background-color: #4f473a;
         }
-        .button-group-right {
-            position: absolute;
-            top: 10px;
-            right: 10px; /* Aligns this group to the right side */
-            display: flex;
-            gap: 10px; /* Space between the right-aligned buttons */
-        }
+
+        /* Hidden file input */
         #fileInput {
             display: none;
         }
-    /* Log Panel Styles */
+
+        /* Log panel styling, located at the bottom */
         #log-panel {
             width: 100%;
             height: 200px;
@@ -73,13 +85,13 @@
             position: absolute;
             bottom: 0;
             z-index: 10;
-            user-select: text !important; /* Force text selection */
+            user-select: text !important;
         }
 
-        /* Added for light state display */
-        #lightState {
+        /* Light state and selector styling */
+        #lightState, #lightSelector {
             position: absolute;
-            bottom: 320px; /* Adjusted to prevent overlap */
+            bottom: 320px;
             left: 10px;
             width: 300px;
             background: rgba(0, 0, 0, 0.8);
@@ -88,390 +100,370 @@
             border-radius: 5px;
             z-index: 5;
         }
+
         #lightSelector {
-            position: absolute;
-            bottom: 270px; /* Adjusted to prevent overlap */
-            left: 10px;
-            width: 300px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 5;
+            bottom: 270px;
         }
     </style>
 </head>
 <body>
     <div id="main">
+        <!-- Canvas where LiteGraph will be rendered -->
         <canvas id="graphcanvas"></canvas>
+
+        <!-- Container for light list -->
         <div id="lightList"></div>
+
+        <!-- Controls for saving, loading, and interacting with the graph -->
         <div id="controls">
             <button id="saveGraphBtn">Save Graph</button>
             <button id="loadGraphBtn">Load Graph</button>
             <button id="fetchGlobalsButton">Fetch Globals</button>
             <button id="showAllLogsButton">Show All Logs</button>
-            <button id="fetchLightsButton">Fetch Lights</button> <!-- Added Fetch Lights Button -->
-            <button id="refreshLightStateButton">Refresh Light State</button> <!-- New Refresh Button -->
+            <button id="fetchLightsButton">Fetch Lights</button>
+            <button id="refreshLightStateButton">Refresh Light State</button>
         </div>
-        <!--div class="button-group-right">
-            <button id="saveGraphBtn">Save Graph</button>
-            <button id="loadGraphBtn">Load Graph</button>
-            <input type="file" id="fileInput" accept=".json"-->
-        </div>
+
+        <!-- Display for bridge connection status -->
         <div id="globalStatus" style="margin-top: 20px; color: white;">
             <div id="bridgeIP"></div>
             <div id="apiKey"></div>
         </div>
 
-        <!-- Light State Display -->
+        <!-- Light state display with RGB and brightness -->
         <div id="lightState">
             <div>Light State:</div>
             <div id="lightRGB">RGB: --</div>
             <div id="lightBrightness">Brightness: --</div>
         </div>
 
-        <!-- Light Selector -->
+        <!-- Dropdown for selecting a light -->
         <div id="lightSelector">
             <label for="lightDropdown">Select Light:</label>
-            <select id="lightDropdown">
-                <!-- Lights will be populated here -->
-            </select>
+            <select id="lightDropdown"></select>
         </div>
+
+        <!-- Hidden file input for loading graphs -->
+        <input type="file" id="fileInput" accept=".json" />
     </div>
 
-    <!-- External Log Panel -->
-    <div id="log-panel" style="height: 200px; overflow-y: scroll;"></div>
+    <!-- Log panel to display messages -->
+    <div id="log-panel"></div>
 
-        <!-- Logs will be displayed here -->
-    </div>
-
-    <div id="manualIpEntry" style="display:none;">
-        <label for="bridgeIpField">Enter Hue Bridge IP Address:</label>
-        <input type="text" id="bridgeIpField" placeholder="192.168.x.x">
-        <button id="submitIpButton">Submit IP</button>
-    </div>
-
-    <div id="apiKeyRetrieval" style="display:none;">
-        <button id="apiKeyButton">Press after Hue Bridge button</button>
-        <input type="hidden" id="apiKeyField">
-    </div>
-
-    <!-- Load Globals and other dependencies -->
-    <script src="globals/EventBus.js"></script>
-    <script src="globals/globals.js"></script>
+    <!-- Load SunCalc Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
-    <script src="globals/globalManager.js"></script>
-    <script src="globals/fetchGlobals.js"></script>
 
-    <!-- Wait until DOM is fully loaded before initializing the nodes -->
+    <!-- Include HLS.js BEFORE your scripts that use it -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <!-- Load LiteGraph Libraries -->
+    <script src="js/litegraph.js"></script>
+    <script src="js/litegraph-editor.js"></script>
+    <script src="js/defaults.js"></script>
+
+    <!-- Initialization Script to Set API Key and Bridge IP -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            console.log("DOM fully loaded");
-            
-            const fetchGlobalsButton = document.getElementById('fetchGlobalsButton');
-            if (fetchGlobalsButton) {
-                fetchGlobalsButton.addEventListener('click', function() {
-                    console.log("Fetch Globals Button Clicked");
-                    initializeGlobals();
-                });
-            } else {
-                console.error("Fetch Globals Button not found");
+        (function() {
+            // Replace with your actual Hue Bridge IP and API key
+            const hueBridgeIp = '192.168.1.39';
+            const hueApiKey = 'GAlIQT79YdUS3pHqO2Plc61koIVy-D5CsG6nBZ2w';
+
+            if (!localStorage.getItem('bridgeIp')) {
+                localStorage.setItem('bridgeIp', hueBridgeIp);
+                console.log(`Initialization Script - Set bridgeIp to ${hueBridgeIp}`);
             }
 
-            const scripts = [
-                'js/initializeGraph.js',
-                'js/litegraph.js',
-                'js/litegraph-editor.js',
-                'js/defaults.js',
-                'custom_nodes/Events/EventBusHandlerNode.js',
-                'custom_nodes/DeviceBus/DeviceBusNode.js',
-                'custom_nodes/Execution/execute_node.js',
-                'custom_nodes/Execution/execute_node_gv.js',
-                'custom_nodes/Execution/ExecuteTestNode.js',
-                'custom_nodes/Execution/ExecuteEventNode.js',
-                'custom_nodes/Execution/pushbutton_node.js',
-                'custom_nodes/Execution/pushbutton_event_node.js',
-                'custom_nodes/govee/GoveeLightControlNode.js',
-                'custom_nodes/Lighting/CC_Control_Nodes/CustomColorNode.js',
-                'custom_nodes/Lighting/CC_Control_Nodes/HueLightGradeNode.js',
-                'custom_nodes/Lighting/CC_Control_Nodes/CustomMultiplierNode.js',
-                'custom_nodes/Lighting/CC_Control_Nodes/HueRotationNode.js',
-                'custom_nodes/Lighting/CC_Control_Nodes/hsv_control_node.js',
-                'custom_nodes/Lighting/CC_Control_Nodes/OffsetValueNode.js',
-                'custom_nodes/Lighting/Hue/HueLightLUTNode.js',
-                'custom_nodes/Lighting/Hue/HueLightNodePlus.js',
-                'custom_nodes/Lighting/Hue/HueLightNodeEvent.js',
-                'custom_nodes/Lighting/Utility_Nodes/MergeLightNode.js',
-                'custom_nodes/Timers/DaysOfTheWeekNode.js',
-                'custom_nodes/Timers/TriggerBusTestNode.js',
-                'custom_nodes/Timers/SimpleTimerTriggerNode.js',
-                'custom_nodes/Timers/TimeOfDayNode.js',
-                'custom_nodes/Timers/TimeOfDaySunriseSunset.js',
-                'custom_nodes/Timers/TriggerBusNode.js',
-                'custom_nodes/Timers/TimeTriggerNode.js',
-                'custom_nodes/Test/BasicReceiverNode.js',
-                'custom_nodes/Test/BasicSenderNode.js',
-                'custom_nodes/Utility/LoggerNode.js',
-                'custom_nodes/Utility/PassThroughNode.js',
-                'custom_nodes/Utility/APICallTrackerNode.js'
-            ];
-
-            // Function to load scripts one by one in order
-            function loadScriptsSequentially(scripts, index = 0) {
-                if (index < scripts.length) {
-                    const script = document.createElement('script');
-                    script.src = scripts[index];
-                    
-                    // Log and handle errors during script loading
-                    script.onload = () => {
-                        console.log(`Loaded script: ${scripts[index]}`);
-                        loadScriptsSequentially(scripts, index + 1);  // Load the next script once this one is loaded
-                    };
-                    script.onerror = () => {
-                        console.error(`Failed to load script: ${scripts[index]}`);
-                    };
-                    
-                    document.body.appendChild(script);
-                }
+            if (!localStorage.getItem('apiKey')) {
+                localStorage.setItem('apiKey', hueApiKey);
+                console.log(`Initialization Script - Set apiKey to ${hueApiKey}`);
             }
-
-            // Start loading scripts sequentially after DOM is ready
-            loadScriptsSequentially(scripts);
-        });
+        })();
     </script>
 
+    <!-- Load Interfaces, Adapters, Services -->
+    <script src="src/interfaces/SmartLight.js"></script> <!-- SmartLight before HueLight -->
+    <script src="src/adapters/HueLight.js"></script>    <!-- HueLight depends on SmartLight -->
+    <script src="src/adapters/KasaLight.js"></script>    <!-- KasaLight depends on SmartLight -->
+    <script src="src/services/BaseDeviceManager.js"></script> <!-- BaseDeviceManager before DeviceManager -->
+    <script src="src/services/DeviceManager.js"></script> <!-- DeviceManager after BaseDeviceManager -->
+    <script src="src/services/StateStore.js"></script>      <!-- StateStore can be loaded anytime -->
+
+    <!-- Load KasaDeviceManager after Adapters -->
+    <script src="src/services/KasaDeviceManager.js"></script> <!-- KasaDeviceManager after KasaLight.js -->
+
+    <!-- Load Nodes -->
+    <script src="src/nodes/HueLightControlNode.js"></script> <!-- Ensure this is only included once -->
+    <script src="src/nodes/KasaLightControlNode.js"></script> <!-- Ensure this is only included once -->
+
+    <!-- Load Existing Custom Scripts -->
+    <script src="js/initializeGraph.js"></script>
 
 
+    <!-- Load Other Custom Nodes -->
+    <script src="custom_nodes/Timers/TimeOfDaySunriseSunset.js"></script>
+    <script src="custom_nodes/DeviceBus/DeviceBusNode.js"></script>
+    <script src="custom_nodes/Execution/execute_node.js"></script>
+    <script src="custom_nodes/Execution/execute_node_gv.js"></script>
+    <script src="custom_nodes/Execution/ExecuteTestNode.js"></script>
+    <script src="custom_nodes/Execution/ExecuteEventNode.js"></script>
+    <script src="custom_nodes/Execution/pushbutton_node.js"></script>
+    <script src="custom_nodes/Execution/pushbutton_event_node.js"></script>
+    <script src="custom_nodes/finance/OptionRollCostCalculatorNode.js"></script>
+    <script src="custom_nodes/govee/GoveeLightControlNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/CustomColorNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/HueLightGradeNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/CustomMultiplierNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/HueRotationNode.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/hsv_control_node.js"></script>
+    <script src="custom_nodes/Lighting/CC_Control_Nodes/OffsetValueNode.js"></script>
+    <script src="custom_nodes/Lighting/Hue/HueLightLUTNode.js"></script>
+    <script src="custom_nodes/Lighting/Hue/HueLightNodePlus.js"></script>
+    <script src="custom_nodes/Lighting/Utility_Nodes/MergeLightNode.js"></script>
+    <script src="custom_nodes/Timers/DaysOfTheWeekNode.js"></script>
+    <script src="custom_nodes/Timers/TriggerBusTestNode.js"></script>
+    <script src="custom_nodes/Timers/SimpleTimerTriggerNode.js"></script>
+    <script src="custom_nodes/Timers/TimeOfDayNode.js"></script>
+    <script src="custom_nodes/Timers/TriggerBusNode.js"></script>
+    <script src="custom_nodes/Timers/TimeTriggerNode.js"></script>
+    <script src="custom_nodes/Test/BasicReceiverNode.js"></script>
+    <script src="custom_nodes/Test/BasicSenderNode.js"></script>
+    <script src="custom_nodes/Utility/LoggerNode.js"></script>
+    <script src="custom_nodes/Utility/PassThroughNode.js"></script>
+    <script src="custom_nodes/Utility/APICallTrackerNode.js"></script>
 
+    <!-- Main Initialization Script -->
+    <script>
+        // Wait for all scripts and the DOM to load before initializing
+        window.addEventListener('load', function() {
+            console.log("All scripts loaded. Initializing event listeners...");
 
-<script>
-    // Fetch API Key and Bridge IP from localStorage
-    const bridgeIP = localStorage.getItem('hueBridgeIp') || '192.168.1.39'; // Default IP if not found in storage
-    const apiKey = localStorage.getItem('hueApiKey') || 'GAlIQT79YdUS3pHqO2Plc61koIVy-D5CsG6nBZ2w'; // Default API key if not found in storage
+            // Check if fetchLightsButton exists before adding event listener
+            const fetchLightsButton = document.getElementById("fetchLightsButton");
+            if (fetchLightsButton) {
+                fetchLightsButton.addEventListener("click", fetchLights);
+                console.log("Event listener added to fetchLightsButton");
+            } else {
+                console.error("fetchLightsButton not found!");
+            }
 
-    document.getElementById("fetchGlobalsButton").addEventListener("click", function() {
-        initializeGlobals();
-    });
+            // Check if refreshLightStateButton exists before adding event listener
+            const refreshLightStateButton = document.getElementById("refreshLightStateButton");
+            if (refreshLightStateButton) {
+                refreshLightStateButton.addEventListener("click", debounce(fetchLightState, 300));
+                console.log("Event listener added to refreshLightStateButton");
+            } else {
+                console.error("refreshLightStateButton not found!");
+            }
 
+            // Add event listeners for save and load graph buttons
+            const saveGraphBtn = document.getElementById("saveGraphBtn");
+            if (saveGraphBtn) {
+                saveGraphBtn.addEventListener("click", saveGraph);
+                console.log("Event listener added to saveGraphBtn");
+            } else {
+                console.error("saveGraphBtn not found!");
+            }
 
-    document.getElementById("fetchLightsButton").addEventListener("click", function() {
-        fetchLights(); // Fetch lights when Fetch Lights button is clicked
-    });
+            const loadGraphBtn = document.getElementById("loadGraphBtn");
+            if (loadGraphBtn) {
+                loadGraphBtn.addEventListener("click", () => document.getElementById('fileInput').click());
+                console.log("Event listener added to loadGraphBtn");
+            } else {
+                console.error("loadGraphBtn not found!");
+            }
 
-    document.getElementById("refreshLightStateButton").addEventListener("click", function() {
-        fetchLightState();
-    });
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(event) {
+                    const file = event.target.files[0];
+                    if (file) loadGraphFromFile(file);
+                });
+                console.log("Event listener added to fileInput");
+            } else {
+                console.error("fileInput not found!");
+            }
 
-    function fetchLights() {
-        fetch(`http://${bridgeIP}/api/${apiKey}/lights`)
-            .then(response => response.json())
-            .then(data => {
-                const lightDropdown = document.getElementById('lightDropdown');
-                lightDropdown.innerHTML = ''; // Clear existing options
-                for (const [id, light] of Object.entries(data)) {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.text = light.name;
-                    lightDropdown.appendChild(option);
-                }
-                lightDropdown.addEventListener('change', fetchLightState); // Attach event listener to dropdown
-                fetchLightState(); // Fetch state for the first light initially
-            })
-            .catch(error => {
+            // Add event listeners for other buttons
+            const fetchGlobalsButton = document.getElementById("fetchGlobalsButton");
+            if (fetchGlobalsButton) {
+                fetchGlobalsButton.addEventListener("click", fetchGlobals);
+                console.log("Event listener added to fetchGlobalsButton");
+            } else {
+                console.error("fetchGlobalsButton not found!");
+            }
+
+            const showAllLogsButton = document.getElementById("showAllLogsButton");
+            if (showAllLogsButton) {
+                showAllLogsButton.addEventListener("click", function() {
+                    const logPanel = document.getElementById("log-panel");
+                    for (let log of logPanel.children) {
+                        log.style.display = "block";  // Make all logs visible
+                    }
+                    console.log("All logs are now visible.");
+                });
+                console.log("Event listener added to showAllLogsButton");
+            } else {
+                console.error("showAllLogsButton not found!");
+            }
+        });
+
+        // Debouncing utility to prevent too many rapid calls
+        function debounce(func, delay) {
+            let debounceTimer;
+            return function() {
+                const context = this, args = arguments;
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        // Load the bridge IP and API key from localStorage (or use default values)
+        const bridgeIP = localStorage.getItem('bridgeIp') || '192.168.1.39';
+        const apiKey = localStorage.getItem('apiKey') || 'GAlIQT79YdUS3pHqO2Plc61koIVy-D5CsG6nBZ2w';
+
+        // Display bridge IP and API key (for debugging purposes)
+        document.getElementById('bridgeIP').textContent = `Bridge IP: ${bridgeIP}`;
+        document.getElementById('apiKey').textContent = `API Key: ${apiKey}`;
+
+        // Fetch the available lights from the API
+        async function fetchLights() {
+            try {
+                const response = await fetch(`http://${bridgeIP}/api/${apiKey}/lights`);
+                const data = await response.json();
+                populateLightDropdown(data);  // Populate the light dropdown with received data
+                logEvent("Fetched lights successfully.");
+            } catch (error) {
                 console.error('Error fetching lights:', error);
-            });
-    }
+                logEvent(`Error fetching lights: ${error}`, "error");
+            }
+        }
 
-    function fetchLightState() {
-        const selectedLightId = document.getElementById('lightDropdown').value;
-        fetch(`http://${bridgeIP}/api/${apiKey}/lights/${selectedLightId}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('Light data:', data); // Log the data to ensure correct API response
+        // Populate the light selection dropdown
+        function populateLightDropdown(data) {
+            const lightDropdown = document.getElementById('lightDropdown');
+            lightDropdown.innerHTML = '';  // Clear the dropdown
+            for (const [id, light] of Object.entries(data)) {
+                const option = document.createElement('option');
+                option.value = id;
+                option.text = light.name;
+                lightDropdown.appendChild(option);
+            }
+            lightDropdown.addEventListener('change', fetchLightState);  // Add listener to fetch the selected light's state
+            fetchLightState();  // Fetch the state of the first light
+            logEvent("Populated light dropdown.");
+        }
 
+        // Fetch the state of the selected light
+        async function fetchLightState() {
+            const selectedLightId = document.getElementById('lightDropdown').value;
+            try {
+                const response = await fetch(`http://${bridgeIP}/api/${apiKey}/lights/${selectedLightId}`);
+                const data = await response.json();
                 const rgb = data.state.xy ? convertXYtoRGB(data.state.xy[0], data.state.xy[1], data.state.bri) : 'N/A';
                 const brightness = data.state.bri;
-
-                console.log(`Converted RGB: ${rgb}`); // Log the converted RGB values
-
-                // Update the UI with the converted RGB and brightness
                 document.getElementById('lightRGB').textContent = `RGB: ${rgb.join(', ')}`;
                 document.getElementById('lightBrightness').textContent = `Brightness: ${brightness}`;
-            })
-            .catch(error => {
+                logEvent(`Fetched state for light ${selectedLightId}.`);
+            } catch (error) {
                 console.error('Error fetching light state:', error);
-            });
-    }
-
-    function convertXYtoRGB(x, y, brightness) {
-        // Based on CIE 1931 color space
-        let z = 1.0 - x - y;
-        let Y = brightness / 255.0; // Brightness scaled to [0, 1]
-        let X = (Y / y) * x;
-        let Z = (Y / y) * z;
-
-        // Convert to RGB using the Wide RGB D65 conversion formula
-        let r = X * 1.656492 - Y * 0.354851 - Z * 0.255038;
-        let g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
-        let b = X * 0.051713 - Y * 0.121364 + Z * 1.011530;
-
-        // Apply gamma correction
-        r = r <= 0.0031308 ? 12.92 * r : (1.055 * Math.pow(r, 1.0 / 2.4) - 0.055);
-        g = g <= 0.0031308 ? 12.92 * g : (1.055 * Math.pow(g, 1.0 / 2.4) - 0.055);
-        b = b <= 0.0031308 ? 12.92 * b : (1.055 * Math.pow(b, 1.0 / 2.4) - 0.055);
-
-        // Clip and convert to [0, 255]
-        r = Math.max(0, Math.min(1, r));
-        g = Math.max(0, Math.min(1, g));
-        b = Math.max(0, Math.min(1, b));
-
-        return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-    }
-
-</script>
-
-
-        function toggleLightList() {
-            const lightList = document.getElementById('lightList');
-            if (lightList.style.display === 'none') {
-                fetchLights();
-            } else {
-                lightList.style.display = 'none';
+                logEvent(`Error fetching light state: ${error}`, "error");
             }
         }
 
-        function addLightNode(lightId, lightName) {
-            const node = LiteGraph.createNode('custom/hue_light');
-            console.log('Node created:', node);
-            if (!node) {
-                console.error("Failed to create node 'custom/hue_light'");
-                return;
-            }
-            node.pos = [Math.random() * 800, Math.random() * 600];
-            node.properties.light_id = lightId;
-            node.title = lightName;
-            graph.add(node);
+        // Convert XY color values to RGB
+        function convertXYtoRGB(x, y, brightness) {
+            let z = 1.0 - x - y;
+            let Y = brightness / 255.0;
+            let X = (Y / y) * x;
+            let Z = (Y / y) * z;
+
+            // Convert to RGB using the CIE color space
+            let r = X * 1.656492 - Y * 0.354851 - Z * 0.255038;
+            let g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
+            let b = X * 0.051713 - Y * 0.121364 + Z * 1.011530;
+
+            // Apply gamma correction
+            const applyGamma = (color) => color <= 0.0031308 ? 12.92 * color : 1.055 * Math.pow(color, 1.0 / 2.4) - 0.055;
+            r = applyGamma(r);
+            g = applyGamma(g);
+            b = applyGamma(b);
+
+            // Clamp and convert to 0-255
+            r = Math.round(Math.max(0, Math.min(1, r)) * 255);
+            g = Math.round(Math.max(0, Math.min(1, g)) * 255);
+            b = Math.round(Math.max(0, Math.min(1, b)) * 255);
+
+            return [r, g, b];
         }
 
-        // Client-side save functionality
-        document.getElementById("saveGraphBtn").addEventListener("click", function () {
-            const graphData = JSON.stringify(graph.serialize());
+        // Save the graph state to a JSON file
+        function saveGraph() {
+            try {
+                const graphData = JSON.stringify(graph.serialize());
+                const blob = new Blob([graphData], { type: 'application/json' });
+                const defaultFilename = `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
 
-            const blob = new Blob([graphData], { type: 'application/json' });
-            const defaultFilename = `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = defaultFilename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            console.log("Graph saved successfully on client-side.");
-        });
-
-        // Client-side load functionality
-        document.getElementById("loadGraphBtn").addEventListener("click", function () {
-            document.getElementById('fileInput').click();
-        });
-
-        document.getElementById('fileInput').addEventListener('change', function (event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const graphData = e.target.result;
-                    try {
-                        graph.clear();
-                        graph.configure(JSON.parse(graphData));
-                        console.log("Graph loaded successfully from file");
-                    } catch (err) {
-                        console.error("Error loading graph from file:", err);
-                    }
-                };
-                reader.readAsText(file);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = defaultFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                logEvent("Graph saved successfully.");
+            } catch (error) {
+                console.error("Error saving graph:", error);
+                logEvent(`Error saving graph: ${error}`, "error");
             }
-        });
+        }
 
-        // Function to log events with an optional type
+        // Load the graph from a file
+        function loadGraphFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const graphData = e.target.result;
+                try {
+                    graph.clear();
+                    graph.configure(JSON.parse(graphData));
+                    console.log("Graph loaded successfully from file");
+                    logEvent("Graph loaded successfully from file.");
+                } catch (err) {
+                    console.error("Error loading graph from file:", err);
+                    logEvent(`Error loading graph from file: ${err}`, "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Log messages in the log panel
         function logEvent(message, type = "general") {
             const logPanel = document.getElementById("log-panel");
             const logEntry = document.createElement("div");
-
-            // Check if the log is a "Main Event"
-            if (type === "main") {
-                logEntry.classList.add("main-event-log");
-            }
-
             logEntry.textContent = message;
-            logPanel.appendChild(logEntry);
-            logPanel.scrollTop = logPanel.scrollHeight; // Scroll to bottom
-        }
 
-        // Event listener for "Main Event" button
-        /*document.getElementById("mainEventButton").addEventListener("click", function() {
-            const logPanel = document.getElementById("log-panel");
-            const logs = logPanel.children;
-
-            for (let log of logs) {
-                if (log.classList.contains("main-event-log")) {
-                    log.style.display = "block";
-                } else {
-                    log.style.display = "none";
-                }
-            }
-        });*/
-
-        // Event listener for "Show All Logs" button (optional)
-        document.getElementById("showAllLogsButton").addEventListener("click", function() {
-            const logPanel = document.getElementById("log-panel");
-            const logs = logPanel.children;
-
-            for (let log of logs) {
-                log.style.display = "block";
-            }
-        });
-
-        // Example of logging a "Main Event" when the toggle node fires an On/Off command
-        function onToggleCommandSent(command) {
-            if (command === "On" || command === "Off") {
-                logEvent(`Toggle Command: ${command}`, "main");
+            // Apply different colors based on the log type
+            if (type === "error") {
+                logEntry.style.color = "red";
+            } else if (type === "warning") {
+                logEntry.style.color = "yellow";
             } else {
-                logEvent(`Other Command: ${command}`);
+                logEntry.style.color = "white";
             }
+
+            // Limit log entries to 100 lines
+            if (logPanel.children.length > 100) {
+                logPanel.removeChild(logPanel.firstChild);
+            }
+
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight;  // Auto-scroll to the bottom
         }
 
-        // Call onToggleCommandSent when an On/Off command is sent
-        // This function should be invoked in your toggle node's command handling logic
-        onToggleCommandSent("On");
-        onToggleCommandSent("Off");
-
-        // Force enable text selection in the log panel
-        document.getElementById('log-panel').onmousedown = function(event) {
-            event.preventDefault = false;
-        };
-        
-        document.getElementById('log-panel').onselectstart = function(event) {
-            return true;
-        };
-
+        // Fetch globals function (Placeholder - implement as needed)
+        function fetchGlobals() {
+            // Implement your fetchGlobals logic here
+            console.log("Fetch Globals button clicked.");
+            logEvent("Fetch Globals button clicked.");
+        }
     </script>
-    <script src="globals/fetchGlobals.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

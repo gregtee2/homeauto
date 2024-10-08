@@ -1,0 +1,30 @@
+{
+  "name": "homeauto",
+  "version": "1.0.0",
+  "description": "Refer to InstallationReadMe.txt for instructions on install and initial setup.\r # What's new? 9/09/24",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.25.7",
+    "@babel/preset-env": "^7.25.7",
+    "babel-loader": "^9.2.1",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "basic-auth": "^2.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.1",
+    "js-yaml": "^4.1.0",
+    "node-cache": "^5.1.2",
+    "tplink-smarthome-api": "^5.0.0"
+  }
+}

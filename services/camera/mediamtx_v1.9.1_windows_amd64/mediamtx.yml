@@ -1,0 +1,46 @@
+# mediamtx.yml
+
+# Global settings
+logLevel: info
+
+# Enable the API
+api: yes
+apiAddress: ":9997"
+
+# Enable the WebRTC server and web interface
+webrtc: yes
+webrtcAddress: ":8889"
+
+# HLS settings
+hls: yes
+hlsAddress: ":8888"
+hlsAlwaysRemux: yes
+hlsAllowOrigin: '*'
+
+paths:
+  # Configuration for Camera 1
+  camera1:
+    source: rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main
+    runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera1/index.m3u8
+
+  # Configuration for Camera 2
+  camera2:
+    source: rtsp://admin:password2@192.168.1.70:554/h264Preview_01_main
+    runOnInit: ffmpeg -i rtsp://admin:password2@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera2/index.m3u8
+
+
+camera8:
+  source: rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera8/index.m3u8
+
+camera9:
+  source: rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera9/index.m3u8
+
+camera10:
+  source: rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera10/index.m3u8
+
+camera11:
+  source: rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera11/index.m3u8

@@ -1,0 +1,24 @@
+
+camera1:
+  source: rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.144:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera1/index.m3u8
+
+camera3:
+  source: rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera3/index.m3u8
+
+camera4:
+  source: rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera4/index.m3u8
+
+camera5:
+  source: rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera5/index.m3u8
+
+camera6:
+  source: rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera6/index.m3u8
+
+camera7:
+  source: rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main
+  runOnInit: ffmpeg -i rtsp://admin:paco2265@192.168.1.70:554/h264Preview_01_main -c:v copy -c:a copy -f hls /streams/camera7/index.m3u8
