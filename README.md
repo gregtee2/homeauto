@@ -1,5 +1,32 @@
 Refer to InstallationReadMe.txt for instructions on install and initial setup.
 
+
+# What's new? 10/08/24
+
+##What's New in the Smart Home Automation System
+#Version Update Highlights:
+
+#Modular Device Management:
+
+Introduced centralized management for Hue and Kasa devices with dedicated classes (HueDeviceManager, KasaDeviceManager).
+Enhanced device discovery, registration, and control for scalability.
+#Unified Command Execution:
+
+Standardized how commands (on/off, color change, etc.) are handled across different device types using a consistent interface (BaseDeviceManager).
+#Dynamic Light Controls:
+
+Added the new HueLightControlNode, enabling dynamic light selection and real-time color adjustments using HSV values.
+#Separation of Concerns:
+
+Segregated device-specific logic for better maintainability and future extensibility.
+Improved the system’s modularity for easier updates and the integration of new devices.
+#Kasa Device Support:
+
+Integrated support for Kasa devices with API endpoints for light control (on/off, color changes) via the server.
+These updates significantly improve system scalability, modularity, and user control, making it easier to manage multiple device types with a streamlined, efficient architecture.
+
+
+
 # What's new? 9/20/24
 
 ## Git Push Summary: Event Bus Architecture, Device Bus Node, and HSV Node with Color Swatch Pickers
