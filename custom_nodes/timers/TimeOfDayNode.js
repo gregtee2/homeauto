@@ -25,6 +25,15 @@ class TimeOfDayNode extends LiteGraph.LGraphNode {
 
         // Force the size after widgets are added
         this.forceSize();
+
+        // Internal state
+        this.currentState = null;  // Tracks the current state (true/false)
+        this.timeoutId = null;     // ID of the scheduled timeout
+
+        // Listen for visibility changes to handle tab activation
+        document.addEventListener("visibilitychange", this.handleVisibilityChange.bind(this));
+
+        console.log("TimeOfDayNode - Initialized.");
     }
 
     setupWidgets() {
@@ -76,6 +85,9 @@ class TimeOfDayNode extends LiteGraph.LGraphNode {
         this.startTimeObj = this.parseTime(this.properties.start_hour, this.properties.start_minute, this.properties.start_ampm);
         this.stopTimeObj = this.parseTime(this.properties.stop_hour, this.properties.stop_minute, this.properties.stop_ampm);
         this.setDirtyCanvas(true);  // Redraw the canvas to reflect changes
+
+        // Reschedule the next state check
+        this.scheduleNextCheck();
     }
 
     parseTime(hour, minute, ampm) {
@@ -96,7 +108,9 @@ class TimeOfDayNode extends LiteGraph.LGraphNode {
         const startMinutes = this.startTimeObj.hours * 60 + this.startTimeObj.minutes;
         const stopMinutes = this.stopTimeObj.hours * 60 + this.stopTimeObj.minutes;
 
-        return currentMinutes >= startMinutes && currentMinutes < stopMinutes;
+        return (startMinutes < stopMinutes)
+            ? currentMinutes >= startMinutes && currentMinutes < stopMinutes
+            : currentMinutes >= startMinutes || currentMinutes < stopMinutes;
     }
 
     onExecute() {
@@ -120,6 +134,61 @@ class TimeOfDayNode extends LiteGraph.LGraphNode {
         ctx.fillText(`Stop: ${this.properties.stop_hour}:${this.formatMinute(this.properties.stop_minute)} ${this.properties.stop_ampm}`, 10, this.size[1] - 30);
     }
 
+    scheduleNextCheck() {
+        // Clear any existing timeout
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+        }
+
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        const startMinutes = this.startTimeObj.hours * 60 + this.startTimeObj.minutes;
+        const stopMinutes = this.stopTimeObj.hours * 60 + this.stopTimeObj.minutes;
+
+        let nextChange;
+        if (startMinutes < stopMinutes) {
+            nextChange = (currentMinutes < startMinutes) ? startMinutes : stopMinutes;
+        } else {
+            nextChange = (currentMinutes < stopMinutes) ? stopMinutes : startMinutes + (24 * 60);  // Add a day if overnight
+        }
+
+        const delayInMillis = (nextChange * 60 * 1000) - (now.getTime() % (24 * 60 * 60 * 1000)); // Delay to the next event
+
+        // Schedule the next state change
+        this.timeoutId = setTimeout(() => {
+            this.checkAndUpdateState();
+            this.scheduleNextCheck();  // Schedule the next change
+        }, delayInMillis > 0 ? delayInMillis : 0);
+
+        // Fallback to requestAnimationFrame to check periodically even if the tab is inactive
+        const fallbackCheck = () => {
+            if (this.timeoutId) return;  // Skip if setTimeout hasn't fired yet
+            this.checkAndUpdateState();
+            requestAnimationFrame(fallbackCheck);
+        };
+        requestAnimationFrame(fallbackCheck);
+    }
+
+    checkAndUpdateState() {
+        const newState = this.isCurrentTimeWithinRange();
+        if (newState !== this.currentState) {
+            this.currentState = newState;
+            this.setOutputData(0, this.currentState);
+            console.log(`TimeOfDayNode - State changed to: ${this.currentState}`);
+            this.triggerSlot(0);
+        }
+    }
+
+    handleVisibilityChange() {
+        if (!document.hidden) {
+            console.log("TimeOfDayNode - Tab became active. Performing immediate state check.");
+            this.checkAndUpdateState();
+            this.scheduleNextCheck();  // Reschedule based on the current time
+        }
+    }
+
     onSerialize(o) {
         o.properties = LiteGraph.cloneObject(this.properties);  // Ensure properties are saved
     }
@@ -137,7 +206,23 @@ class TimeOfDayNode extends LiteGraph.LGraphNode {
 
     onAdded() {
         this.forceSize();  // Ensure the size is set when the node is added to the graph
+        this.currentState = this.isCurrentTimeWithinRange();
+        this.setOutputData(0, this.currentState);
+        this.triggerSlot(0);  // Emit the initial state
+        this.scheduleNextCheck();  // Schedule the first state check
+    }
+
+    onRemoved() {
+        // Clear any existing timeout
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+        }
+
+        // Remove visibility change listener
+        document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     }
 }
 
+// Register the node with LiteGraph under the "Timers" category
 LiteGraph.registerNodeType("Timers/time_of_day", TimeOfDayNode);

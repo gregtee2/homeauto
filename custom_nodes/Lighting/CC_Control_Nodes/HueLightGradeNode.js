@@ -50,60 +50,46 @@ class HueLightGradeNode extends LiteGraph.LGraphNode {
     }
 
     updateOutputs(fromUserAction = false) {
-        // Get the input HSV object
         const hsvInfo = this.getInputData(0);
 
         if (hsvInfo && !this.initialValuesCaptured) {
-            console.log("Received Initial HSV Info:", hsvInfo);
-
-            // Capture initial values from the source node
             this.hueSlider.value = hsvInfo.hue / 1; // Normalize hue to 0-1 for slider
             this.saturationSlider.value = hsvInfo.saturation;
             this.brightnessSlider.value = hsvInfo.brightness / 254; // Normalize brightness to 0-1 for slider
 
-            // Set the captured values as the starting point for adjustments
             this.properties.hueAdjustment = 0;
             this.properties.saturationAdjustment = 0;
             this.properties.brightnessAdjustment = 0;
 
-            // Mark that initial values have been captured
             this.initialValuesCaptured = true;
         }
 
         if (this.initialValuesCaptured) {
-            // Pass through original values if the node is disabled
             if (this.properties.isDisabled) {
                 this.setOutputData(0, hsvInfo);
-                this.updateColorSwatch(hsvInfo); // Update the color swatch with the original color
+                this.updateColorSwatch(hsvInfo); 
             } else {
-                // Apply the adjustments as relative changes
                 const adjustedHue = Math.min(Math.max(this.hueSlider.value + this.properties.hueAdjustment, 0), 1);
                 const adjustedSaturation = Math.min(Math.max(this.saturationSlider.value + this.properties.saturationAdjustment, 0), 1);
                 const adjustedBrightness = Math.min(Math.max(this.brightnessSlider.value + this.properties.brightnessAdjustment, 0), 1);
 
-                // Create the adjusted HSV object
                 const adjustedHsvInfo = {
                     hue: adjustedHue,
                     saturation: adjustedSaturation,
-                    brightness: adjustedBrightness * 254  // Scale brightness back to 0-254
+                    brightness: adjustedBrightness * 254 
                 };
 
-                // Log only when adjustments are made by the user
                 if (fromUserAction) {
                     console.log("Adjusted HSV Info:", adjustedHsvInfo);
                 }
 
-                // Update color swatch
                 this.updateColorSwatch(adjustedHsvInfo);
-
-                // Send the adjusted HSV object to the output
                 this.setOutputData(0, adjustedHsvInfo);
             }
         }
     }
 
     updateColorSwatch(hsvInfo) {
-        // Convert HSV to RGB for accurate color display
         const rgb = this.hsvToRgb(hsvInfo.hue, hsvInfo.saturation, hsvInfo.brightness / 254);
         const color = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
         this.boxcolor = color;
@@ -138,11 +124,30 @@ class HueLightGradeNode extends LiteGraph.LGraphNode {
     }
 
     onResize() {
-        this.size = [300, 180]; // Force size on resize to accommodate color swatch and toggle
+        this.size = [300, 180]; 
     }
 
     onStart() {
-        this.size = [300, 180]; // Force size when the node starts to accommodate color swatch and toggle
+        this.size = [300, 180]; 
+    }
+
+    // Serialization method
+    serialize() {
+        const data = super.serialize();
+        data.properties = this.properties;
+        return data;
+    }
+
+    // Configure method (restores state)
+    configure(data) {
+        super.configure(data);
+        this.properties = data.properties || this.properties;
+
+        // Restore sliders and toggle values
+        this.hueSlider.value = this.properties.hueAdjustment;
+        this.saturationSlider.value = this.properties.saturationAdjustment;
+        this.brightnessSlider.value = this.properties.brightnessAdjustment;
+        this.updateOutputs();
     }
 }
 

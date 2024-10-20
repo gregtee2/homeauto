@@ -170,131 +170,228 @@ app.get('/proxy', proxyAuth, proxyLimiter, async (req, res) => {
     }
 });
 
-/** 
- * ====== START OF KASA DEVICE MANAGEMENT ======
- * 
- * Below is the integration of Kasa device management using the `tplink-smarthome-api`.
- * It includes device discovery and API endpoints to control Kasa lights.
- */
+// ====== KASA DEVICE MANAGEMENT ======
 
 // Initialize the TP-Link Smart Home API Client
 const kasaClient = new Client();
-const kasaDevices = {};
+const kasaLights = {};      // Store light devices by deviceId
+const kasaSmartPlugs = {}; // Store smart plug devices by deviceId
+
+// Define device types for categorization based on actual device.deviceType values
+const LIGHT_DEVICE_TYPES = ['bulb']; // 'bulb' represents lights
+const SMART_PLUG_DEVICE_TYPES = ['plug']; // 'plug' represents smart plugs
+
+// Middleware to log incoming requests
+app.use((req, res, next) => {
+    console.log(`Incoming request: ${req.method} ${req.url}`);
+    next();
+});
 
 // Discover Kasa Devices on Server Start
 kasaClient.startDiscovery().on('device-new', (device) => {
     console.log(`Discovered Kasa device: ${device.alias} (${device.host})`);
     const deviceId = device.deviceId; // Ensure deviceId is used
-    
-    if (deviceId) {
-        kasaDevices[deviceId] = device;
-        console.log(`Registered Kasa device: ${device.alias} (ID: ${deviceId})`);
-    } else {
+
+    if (!deviceId) {
         console.warn(`Device ${device.alias} does not have a deviceId. Skipping.`);
+        return;
+    }
+
+    // Log the deviceType for debugging
+    console.log(`Device Type for ${device.alias}: ${device.deviceType}`);
+
+    // Categorize device based on deviceType
+    if (LIGHT_DEVICE_TYPES.includes(device.deviceType)) {
+        kasaLights[deviceId] = device;
+        console.log(`Registered Kasa Light device: ${device.alias} (ID: ${deviceId})`);
+    } else if (SMART_PLUG_DEVICE_TYPES.includes(device.deviceType)) {
+        kasaSmartPlugs[deviceId] = device;
+        console.log(`Registered Kasa Smart Plug device: ${device.alias} (ID: ${deviceId})`);
+    } else {
+        console.warn(`Unknown device type (${device.deviceType}) for device ${device.alias}. Skipping.`);
     }
 });
 
-// Endpoint to Get All Kasa Devices
-app.get('/api/kasa/devices', (req, res) => {
-    console.log(`Received request to fetch Kasa devices from ${req.ip}`);
-    const deviceList = Object.values(kasaDevices).map(device => ({
-        alias: device.alias,
-        deviceId: device.deviceId,
-        host: device.host,
-        type: device.deviceType
+// ====== LIGHT API ENDPOINTS ======
+
+// Endpoint to Get All Kasa Lights
+app.get('/api/kasa/lights', (req, res) => {
+    console.log(`Received request to fetch Kasa lights from ${req.ip}`);
+    const lightList = Object.values(kasaLights).map(light => ({
+        alias: light.alias,
+        deviceId: light.deviceId,
+        host: light.host,
+        type: light.deviceType
     }));
-    console.log(`Responding with devices: ${JSON.stringify(deviceList)}`);
-    res.json(deviceList);
+    console.log(`Responding with lights: ${JSON.stringify(lightList)}`);
+    res.json(lightList);
 });
 
 // Endpoint to Turn On a Kasa Light
 app.post('/api/kasa/lights/:id/on', async (req, res) => {
     const deviceId = req.params.id;
-    console.log(`Received request to turn on device: ${deviceId}`);
-    console.log(`Available devices: ${Object.keys(kasaDevices)}`);
-    
-    const device = kasaDevices[deviceId];
-    if (!device) {
-        console.error(`Device with ID ${deviceId} not found.`);
-        return res.status(404).json({ error: 'Device not found.' });
+    console.log(`Received request to turn on light: ${deviceId}`);
+    console.log(`Available lights: ${Object.keys(kasaLights)}`);
+
+    const light = kasaLights[deviceId];
+    if (!light) {
+        console.error(`Light with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Light not found.' });
     }
     try {
-        await device.setPowerState(true);
+        await light.setPowerState(true);
         res.json({ status: 'On' });
-        console.log(`Turned on device ${deviceId}`);
+        console.log(`Turned on light ${deviceId}`);
     } catch (error) {
-        console.error(`Error turning on device ${deviceId}:`, error);
-        res.status(500).json({ error: 'Failed to turn on the device.' });
+        console.error(`Error turning on light ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to turn on the light.' });
     }
 });
 
 // Endpoint to Turn Off a Kasa Light
 app.post('/api/kasa/lights/:id/off', async (req, res) => {
     const deviceId = req.params.id;
-    console.log(`Received request to turn off device: ${deviceId}`);
-    const device = kasaDevices[deviceId];
-    if (!device) {
-        console.error(`Device with ID ${deviceId} not found.`);
-        return res.status(404).json({ error: 'Device not found.' });
+    console.log(`Received request to turn off light: ${deviceId}`);
+    const light = kasaLights[deviceId];
+    if (!light) {
+        console.error(`Light with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Light not found.' });
     }
     try {
-        await device.setPowerState(false);
+        await light.setPowerState(false);
         res.json({ status: 'Off' });
-        console.log(`Turned off device ${deviceId}`);
+        console.log(`Turned off light ${deviceId}`);
     } catch (error) {
-        console.error(`Error turning off device ${deviceId}:`, error);
-        res.status(500).json({ error: 'Failed to turn off the device.' });
+        console.error(`Error turning off light ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to turn off the light.' });
     }
 });
 
-// Endpoint to Set Color of a Kasa Light
-app.post('/api/kasa/lights/:id/color', async (req, res) => {
+// Endpoint to Get Light State of a Kasa Light
+app.get('/api/kasa/lights/:id/state', async (req, res) => {
     const deviceId = req.params.id;
-    const { hue, saturation, brightness } = req.body;
-    const device = kasaDevices[deviceId];
-    
-    if (!device) {
-        console.error(`Device with ID ${deviceId} not found.`);
-        return res.status(404).json({ error: 'Device not found.' });
+    console.log(`Received request to get state of light: ${deviceId}`);
+    const light = kasaLights[deviceId];
+    if (!light) {
+        console.error(`Light with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Light not found.' });
     }
-    
-    // Log the device and its methods for debugging
-    console.log(`Device info for ${deviceId}:`, device);
-    console.log(`Available methods on device: ${Object.keys(device).join(', ')}`);
-    
-    // Validate HSV Values
-    if (
-        typeof hue !== 'number' || hue < 0 || hue > 360 ||
-        typeof saturation !== 'number' || saturation < 0 || saturation > 100 ||
-        typeof brightness !== 'number' || brightness < 0 || brightness > 100
-    ) {
-        return res.status(400).json({ error: 'Invalid HSV values. Ensure hue is 0-360, saturation and brightness are 0-100.' });
-    }
-    
     try {
-        // Ensure the device supports lighting capabilities
-        if (!device.lighting) {
-            console.error(`Device ${deviceId} does not support lighting capabilities.`);
-            return res.status(400).json({ error: 'Device does not support color control' });
+        if (!light.lighting) {
+            console.error(`Light ${deviceId} does not support lighting capabilities.`);
+            return res.status(400).json({ error: 'Light does not support lighting capabilities.' });
         }
-    
-        // Set the color using the correct method
-        await device.lighting.setLightState({ on: true, hue, saturation, brightness });
-        res.json({ status: 'Color set successfully.' });
-        console.log(`Set color for device ${deviceId} to H:${hue} S:${saturation} B:${brightness}`);
+        const lightState = await light.lighting.getLightState();
+        res.json(lightState);
+        console.log(`Fetched light state for light ${deviceId}`);
     } catch (error) {
-        console.error(`Error setting color for device ${deviceId}:`, error.stack);
-        res.status(500).json({ error: 'Failed to set color.', details: error.message });
+        console.error(`Error fetching light state for light ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to fetch light state.' });
     }
 });
 
-/** 
- * ====== END OF KASA DEVICE MANAGEMENT ======
- */
+// ====== SMART PLUG API ENDPOINTS ======
 
-/** 
- * Start the server (if not already started earlier)
- */
+// Endpoint to Get All Kasa Smart Plugs
+app.get('/api/kasa/smartplugs', (req, res) => {
+    console.log(`Received request to fetch Kasa smart plugs from ${req.ip}`);
+    const plugList = Object.values(kasaSmartPlugs).map(plug => ({
+        alias: plug.alias,
+        deviceId: plug.deviceId,
+        host: plug.host,
+        type: plug.deviceType
+    }));
+    console.log(`Responding with smart plugs: ${JSON.stringify(plugList)}`);
+    res.json(plugList);
+});
+
+// Endpoint to Turn On a Kasa Smart Plug
+app.post('/api/kasa/smartplugs/:id/on', async (req, res) => {
+    const deviceId = req.params.id;
+    console.log(`Received request to turn on smart plug: ${deviceId}`);
+    const plug = kasaSmartPlugs[deviceId];
+    if (!plug) {
+        console.error(`Smart Plug with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Smart Plug not found.' });
+    }
+    try {
+        await plug.setPowerState(true);
+        res.json({ status: 'On' });
+        console.log(`Turned on smart plug ${deviceId}`);
+    } catch (error) {
+        console.error(`Error turning on smart plug ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to turn on the smart plug.' });
+    }
+});
+
+// Endpoint to Turn Off a Kasa Smart Plug
+app.post('/api/kasa/smartplugs/:id/off', async (req, res) => {
+    const deviceId = req.params.id;
+    console.log(`Received request to turn off smart plug: ${deviceId}`);
+    const plug = kasaSmartPlugs[deviceId];
+    if (!plug) {
+        console.error(`Smart Plug with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Smart Plug not found.' });
+    }
+    try {
+        await plug.setPowerState(false);
+        res.json({ status: 'Off' });
+        console.log(`Turned off smart plug ${deviceId}`);
+    } catch (error) {
+        console.error(`Error turning off smart plug ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to turn off the smart plug.' });
+    }
+});
+
+// Endpoint to Get State of a Kasa Smart Plug
+app.get('/api/kasa/smartplugs/:id/state', async (req, res) => {
+    const deviceId = req.params.id;
+    console.log(`Received request to get state of smart plug: ${deviceId}`);
+    const plug = kasaSmartPlugs[deviceId];
+
+    if (!plug) {
+        console.error(`Smart Plug with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Smart Plug not found.' });
+    }
+
+    try {
+        const plugState = await plug.getSysInfo(); // Ensure this method fetches the state properly
+        res.json(plugState);
+        console.log(`Fetched state for smart plug ${deviceId}`);
+    } catch (error) {
+        console.error(`Error fetching state for smart plug ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to fetch smart plug state.' });
+    }
+});
+
+
+// Endpoint to Get Energy Usage of a Kasa Smart Plug
+app.get('/api/kasa/smartplugs/:id/energy', async (req, res) => {
+    const deviceId = req.params.id;
+    console.log(`Received request to get energy usage of smart plug: ${deviceId}`);
+    const plug = kasaSmartPlugs[deviceId];
+    if (!plug) {
+        console.error(`Smart Plug with ID ${deviceId} not found.`);
+        return res.status(404).json({ error: 'Smart Plug not found.' });
+    }
+    if (!plug.supportsEmeter) {
+        console.error(`Smart Plug ${deviceId} does not support energy monitoring.`);
+        return res.status(400).json({ error: 'Smart Plug does not support energy monitoring.' });
+    }
+    try {
+        const emeterRealtime = await plug.emeter.getRealtime();
+        res.json(emeterRealtime);
+        console.log(`Fetched energy usage for smart plug ${deviceId}`);
+    } catch (error) {
+        console.error(`Error fetching energy usage for smart plug ${deviceId}:`, error);
+        res.status(500).json({ error: 'Failed to fetch energy usage.' });
+    }
+});
+
+// ====== END OF KASA DEVICE MANAGEMENT ======
+
+
+// Start the server
 app.listen(port, () => {
     console.log(`Dynamic MediaMTX Config Server and Kasa Backend Server listening at http://localhost:${port}`);
 });

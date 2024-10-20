@@ -1,3 +1,5 @@
+// File: src/services/KasaDeviceManager.js
+
 class KasaDeviceManager {
     constructor() {
         this.apiBaseUrl = 'http://localhost:3000/api/kasa'; // Ensure this matches your backend URL
@@ -155,14 +157,25 @@ class KasaDeviceManager {
      * @param {object} hsv - { hue: 0-360, saturation: 0-100, brightness: 0-100 }
      * @returns {Promise<void>}
      */
-    async setLightColor(deviceId, hsv) {
+    async setColor(deviceId, hsv) {
         try {
+            // Validate HSV values
+            const { hue, saturation, brightness } = hsv;
+            if (
+                typeof hue !== 'number' || hue < 0 || hue > 360 ||
+                typeof saturation !== 'number' || saturation < 0 || saturation > 100 ||
+                typeof brightness !== 'number' || brightness < 0 || brightness > 100
+            ) {
+                alert("Invalid HSV values entered.");
+                throw new Error("Invalid HSV values.");
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/lights/${deviceId}/color`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(hsv)
             });
-            if (!response.ok) throw new Error(`Failed to set light color: ${response.statusText}`);
+            if (!response.ok) throw new Error(`Failed to set color: ${response.statusText}`);
             const data = await response.json();
             console.log(`KasaDeviceManager - Set color for light ${deviceId}:`, data);
             // Invalidate cache after state change
@@ -225,6 +238,44 @@ class KasaDeviceManager {
             return data;
         } catch (error) {
             console.error(`KasaDeviceManager - Error fetching energy usage for smart plug ${deviceId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Fetches the state of a specific Kasa light.
+     * @param {string} deviceId - The ID of the Kasa light.
+     * @returns {Promise<object>} The light state object.
+     */
+    async getLightState(deviceId) {
+        const CACHE_DURATION_MS = 30000; // 30 seconds cache duration
+        const cachedState = this.deviceStateCache.get(deviceId);
+
+        // Check if the cached state exists and is still valid
+        if (cachedState && (Date.now() - cachedState.timestamp < CACHE_DURATION_MS)) {
+            console.log(`KasaDeviceManager - Returning cached state for light ${deviceId}`);
+            return cachedState.state;
+        }
+
+        // Fallback to fetching state from backend if cache is invalid or not found
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/lights/${deviceId}/state`);
+            if (!response.ok) throw new Error(`Failed to fetch light state: ${response.statusText}`);
+            const lightState = await response.json();
+
+            // Check if state has changed before updating the cache
+            const previousState = cachedState ? cachedState.state : null;
+            if (JSON.stringify(previousState) !== JSON.stringify(lightState)) {
+                this.deviceStateCache.set(deviceId, { state: lightState, timestamp: Date.now() });
+                console.log(`KasaDeviceManager - Fetched and cached light state for ${deviceId}:`, lightState);
+                this.notifyStateChange(deviceId, lightState);
+            } else {
+                console.log(`KasaDeviceManager - Light state for ${deviceId} unchanged.`);
+            }
+
+            return lightState;
+        } catch (error) {
+            console.error(`KasaDeviceManager - Error fetching light state for device ${deviceId}:`, error);
             throw error;
         }
     }
@@ -312,7 +363,7 @@ class KasaDeviceManager {
                     // Compare previous and current state to detect changes
                     if (JSON.stringify(previousState) !== JSON.stringify(currentState)) {
                         this.deviceStateCache.set(plug.deviceId, { state: currentState, timestamp: Date.now() });
-                        console.log(`Polled and cached state for smart plug ${plug.deviceId}:`, currentState);
+                        console.log(`KasaDeviceManager - Polled and cached state for smart plug ${plug.deviceId}:`, currentState);
                         this.notifyStateChange(plug.deviceId, currentState);
                     } else {
                         console.log(`KasaDeviceManager - No state change for smart plug ${plug.deviceId}.`);
@@ -322,44 +373,6 @@ class KasaDeviceManager {
                 }
             }
         }, this.pollingInterval);
-    }
-
-    /**
-     * Fetches the state of a specific Kasa light.
-     * @param {string} deviceId - The ID of the Kasa light.
-     * @returns {Promise<object>} The light state object.
-     */
-    async getLightState(deviceId) {
-        const CACHE_DURATION_MS = 30000; // 30 seconds cache duration
-        const cachedState = this.deviceStateCache.get(deviceId);
-
-        // Check if the cached state exists and is still valid
-        if (cachedState && (Date.now() - cachedState.timestamp < CACHE_DURATION_MS)) {
-            console.log(`KasaDeviceManager - Returning cached state for light ${deviceId}`);
-            return cachedState.state;
-        }
-
-        // Fallback to fetching state from backend if cache is invalid or not found
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/lights/${deviceId}/state`);
-            if (!response.ok) throw new Error(`Failed to fetch light state: ${response.statusText}`);
-            const lightState = await response.json();
-
-            // Check if state has changed before updating the cache
-            const previousState = cachedState ? cachedState.state : null;
-            if (JSON.stringify(previousState) !== JSON.stringify(lightState)) {
-                this.deviceStateCache.set(deviceId, { state: lightState, timestamp: Date.now() });
-                console.log(`KasaDeviceManager - Fetched and cached light state for ${deviceId}:`, lightState);
-                this.notifyStateChange(deviceId, lightState);
-            } else {
-                console.log(`KasaDeviceManager - Light state for ${deviceId} unchanged.`);
-            }
-
-            return lightState;
-        } catch (error) {
-            console.error(`KasaDeviceManager - Error fetching light state for device ${deviceId}:`, error);
-            throw error;
-        }
     }
 
     /**

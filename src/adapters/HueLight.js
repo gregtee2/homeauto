@@ -16,9 +16,7 @@ class HueLight extends window.SmartLight { // Assuming SmartLight is a base clas
      */
     async turnOn(state) {
         try {
-            // Ensure onState is always a valid boolean
-            const onState = state === true ? true : false;
-
+            const onState = !!state; // Ensure it's a boolean
             const url = `http://${this.bridge_ip}/api/${this.api_key}/lights/${this.light_id}/state`;
             const body = { on: onState };
 
@@ -31,10 +29,7 @@ class HueLight extends window.SmartLight { // Assuming SmartLight is a base clas
             });
 
             const data = await response.json();
-
-            if (data[0]?.error) {
-                throw new Error(data[0].error.description);
-            }
+            if (data[0]?.error) throw new Error(data[0].error.description);
 
             this.state.on = onState;
             console.log(`HueLight - Turned ${onState ? 'On' : 'Off'}: ${this.name}`);
@@ -56,16 +51,16 @@ class HueLight extends window.SmartLight { // Assuming SmartLight is a base clas
      */
     async setColor(hsv) {
         try {
-            // Round HSV values to ensure integers are sent
-            const roundedHue = Math.round(hsv.hue);
-            const roundedSaturation = Math.round(hsv.saturation);
-            const roundedBrightness = Math.round(hsv.brightness);
+            // Validate and clamp HSV values
+            const hue = Math.round(Math.min(360, Math.max(0, hsv.hue)));
+            const saturation = Math.round(Math.min(100, Math.max(0, hsv.saturation)));
+            const brightness = Math.round(Math.min(254, Math.max(0, hsv.brightness)));
 
             const url = `http://${this.bridge_ip}/api/${this.api_key}/lights/${this.light_id}/state`;
             const body = {
-                hue: Math.round((roundedHue / 360) * 65535), // Hue in 0-65535
-                sat: Math.round((roundedSaturation / 100) * 254), // Saturation in 0-254
-                bri: roundedBrightness // Brightness 0-254
+                hue: Math.round((hue / 360) * 65535), // Convert to 0-65535 range
+                sat: Math.round((saturation / 100) * 254), // Convert to 0-254 range
+                bri: brightness // Brightness in 0-254
             };
 
             console.log(`HueLight - setColor Request body: ${JSON.stringify(body)}`);
@@ -77,23 +72,18 @@ class HueLight extends window.SmartLight { // Assuming SmartLight is a base clas
             });
 
             const data = await response.json();
+            if (data[0]?.error) throw new Error(data[0].error.description);
 
-            if (data[0]?.error) {
-                throw new Error(data[0].error.description);
-            }
+            // Update internal state
+            this.state.hue = hue;
+            this.state.saturation = saturation;
+            this.state.brightness = brightness;
 
-            this.state.hue = roundedHue;
-            this.state.saturation = roundedSaturation;
-            this.state.brightness = roundedBrightness;
-            console.log(`HueLight - Set color: ${this.name}`, { hue: roundedHue, saturation: roundedSaturation, brightness: roundedBrightness });
+            console.log(`HueLight - Set color: ${this.name}`, { hue, saturation, brightness });
         } catch (error) {
             console.error(`HueLight - Error setting color: ${this.name}`, error);
         }
     }
-
-    /**
-     * Optionally, implement getState or other necessary methods.
-     */
 }
 
 // Attach HueLight class to window for global access

@@ -28,6 +28,9 @@ class IndependentSunriseSunsetTriggerNode extends LiteGraph.LGraphNode {
         // Time objects
         this.startTimeObj = null;
         this.stopTimeObj = null;
+
+        // Add a property to track the last calculation date
+        this.lastCalculationDate = null;
     }
 
     setupWidgets() {
@@ -36,6 +39,24 @@ class IndependentSunriseSunsetTriggerNode extends LiteGraph.LGraphNode {
         // Geolocation Button
         this.addWidget("button", "Fetch Geolocation", null, () => {
             this.fetchGeolocation();
+        });
+
+        // Manual Latitude Input
+        this.addWidget("number", "Latitude", this.properties.latitude || 0, (v) => {
+            this.properties.latitude = parseFloat(v);
+            if (!isNaN(this.properties.latitude) && !isNaN(this.properties.longitude)) {
+                this.geolocationAvailable = true;
+                this.calculateSunTimes();
+            }
+        });
+
+        // Manual Longitude Input
+        this.addWidget("number", "Longitude", this.properties.longitude || 0, (v) => {
+            this.properties.longitude = parseFloat(v);
+            if (!isNaN(this.properties.latitude) && !isNaN(this.properties.longitude)) {
+                this.geolocationAvailable = true;
+                this.calculateSunTimes();
+            }
         });
 
         // On Time Offset Controls
@@ -94,8 +115,11 @@ class IndependentSunriseSunsetTriggerNode extends LiteGraph.LGraphNode {
     }
 
     calculateSunTimes() {
-        if (this.geolocationAvailable) {
+        if (this.geolocationAvailable && this.properties.latitude != null && this.properties.longitude != null) {
             const now = new Date();
+            // Store the date of this calculation
+            this.lastCalculationDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
             const sunTimes = SunCalc.getTimes(now, this.properties.latitude, this.properties.longitude);
 
             this.properties.sunrise_time = sunTimes.sunrise;
@@ -116,7 +140,7 @@ class IndependentSunriseSunsetTriggerNode extends LiteGraph.LGraphNode {
             );
 
             this.properties.final_on_time = finalOnTime;
-            this.widgets[7].value = finalOnTime;  // Ensure correct widget index for Sunset time
+            this.widgets[9].value = finalOnTime;  // Adjusted index for widgets
             this.setDirtyCanvas(true);
 
             // Send the updated time data
@@ -134,7 +158,7 @@ class IndependentSunriseSunsetTriggerNode extends LiteGraph.LGraphNode {
             );
 
             this.properties.final_off_time = finalOffTime;
-            this.widgets[8].value = finalOffTime;  // Ensure correct widget index for Sunrise time
+            this.widgets[10].value = finalOffTime;  // Adjusted index for widgets
             this.setDirtyCanvas(true);
 
             // Send the updated time data
@@ -159,6 +183,19 @@ class IndependentSunriseSunsetTriggerNode extends LiteGraph.LGraphNode {
     }
 
     onExecute() {
+        // If geolocation is not available, try to fetch it
+        if (!this.geolocationAvailable && (this.properties.latitude == null || this.properties.longitude == null)) {
+            // Do nothing; waiting for user to provide location
+            return;
+        }
+
+        const now = new Date();
+        const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (this.lastCalculationDate == null || currentDate.getTime() !== this.lastCalculationDate.getTime()) {
+            this.calculateSunTimes();
+        }
+
         this.sendTimeData();  // Continuously send the time data
     }
 }

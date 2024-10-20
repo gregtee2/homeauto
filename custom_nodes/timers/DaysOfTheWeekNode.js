@@ -1,4 +1,4 @@
-// File: src/nodes/DaysOfTheWeekNode.js
+// File: C:\homeauto\custom_nodes\Timers\days_of_the_week.js
 
 // Registration Guard: Ensure the node is registered only once
 if (!LiteGraph.registered_nodes || !LiteGraph.registered_nodes["Timers/days_of_the_week"]) {
@@ -28,8 +28,10 @@ if (!LiteGraph.registered_nodes || !LiteGraph.registered_nodes["Timers/days_of_t
             };
 
             // Define inputs and outputs
-            this.addInput("In", "boolean");
-            this.addOutput("Out", "boolean");
+            this.addInput("Trigger", "boolean");  // Input from TimeOfDayNode or other trigger
+            this.addInput("HSV Info", "hsv_info");
+            this.addOutput("On/Off", "boolean");
+            this.addOutput("HSV Info", "hsv_info");
 
             // Initialize widgets
             this.setupWidgets();
@@ -278,17 +280,20 @@ if (!LiteGraph.registered_nodes || !LiteGraph.registered_nodes["Timers/days_of_t
          * Executes the node's main functionality.
          */
         onExecute() {
-            const input = this.getInputData(0);
+            const trigger = this.getInputData(0);
+            const hsvInfo = this.getInputData(1);  // Input for HSV Info
 
             // Determine if today is valid based on the selected days
             const todayValid = this.isTodayValid();
 
             // Output based on the validation
-            if (todayValid) {
-                this.setOutputData(0, input);
-                console.log(`DaysOfTheWeekNode - Today is valid (${input}), outputting: ${input}`);
+            if (todayValid && trigger) {
+                this.setOutputData(0, true);  // Pass On/Off signal
+                this.setOutputData(1, hsvInfo);  // Pass HSV info if available
+                console.log(`DaysOfTheWeekNode - Today is valid, outputting: true`);
             } else {
-                this.setOutputData(0, false);
+                this.setOutputData(0, false);  // Pass Off signal
+                this.setOutputData(1, null);   // Nullify HSV output if conditions are not met
                 console.log("DaysOfTheWeekNode - Today is not valid, outputting: false");
             }
         }
@@ -400,7 +405,4 @@ if (!LiteGraph.registered_nodes || !LiteGraph.registered_nodes["Timers/days_of_t
     // Register the node with LiteGraph under the "Timers" category
     LiteGraph.registerNodeType("Timers/days_of_the_week", DaysOfTheWeekNode);
     console.log("DaysOfTheWeekNode - Registered successfully under 'Timers' category.");
-
-    // Attach the node class to LiteGraph namespace to prevent re-registration
-    LiteGraph.DaysOfTheWeekNode = DaysOfTheWeekNode;
 }

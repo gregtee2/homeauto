@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Kasa Control Interface</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiteGraph Example Integration</title>
 
@@ -25,6 +26,23 @@
             width: 100%;
             height: 100%;
             position: relative;
+        }
+
+        /* Date and time display styling */
+        #dateTimeDisplay {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            color: lightgray;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            font-family: Arial, sans-serif;
+            opacity: 1;
+            visibility: visible;
         }
 
         /* Light list container, hidden initially */
@@ -104,10 +122,27 @@
         #lightSelector {
             bottom: 270px;
         }
+
+        /* Command Queue styling */
+        #commandQueueStatus {
+            position: absolute;
+            bottom: 240px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: lightgray;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
     <div id="main">
+        <!-- Date and Time Display -->
+        <div id="dateTimeDisplay"></div>
+
         <!-- Canvas where LiteGraph will be rendered -->
         <canvas id="graphcanvas"></canvas>
 
@@ -117,6 +152,7 @@
         <!-- Controls for saving, loading, and interacting with the graph -->
         <div id="controls">
             <button id="saveGraphBtn">Save Graph</button>
+            <button id="saveGraphAsBtn">Save Graph As</button> <!-- New Button Added -->
             <button id="loadGraphBtn">Load Graph</button>
             <button id="fetchGlobalsButton">Fetch Globals</button>
             <button id="showAllLogsButton">Show All Logs</button>
@@ -143,17 +179,38 @@
             <select id="lightDropdown"></select>
         </div>
 
+        <!-- Command Queue Status -->
+        <div id="commandQueueStatus">
+            <div id="next-command">Next command: N/A</div>
+            <div id="time-until-next">Time until next: N/A</div>
+        </div>
+
+            <div id="all">
+        <h2>All Devices</h2>
+        <!-- Content for all devices -->
+        </div>
+
+        <div id="lights">
+            <h2>Kasa Lights</h2>
+            <!-- Content for lights -->
+        </div>
+
+        <div id="smartplugs">
+            <h2>Kasa Smart Plugs</h2>
+            <!-- Content for smart plugs -->
+        </div>
+
         <!-- Hidden file input for loading graphs -->
         <input type="file" id="fileInput" accept=".json" />
+
+
     </div>
 
     <!-- Log panel to display messages -->
     <div id="log-panel"></div>
 
-    <!-- Load SunCalc Library -->
+    <!-- Load Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
-
-    <!-- Include HLS.js BEFORE your scripts that use it -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <!-- Load LiteGraph Libraries -->
@@ -161,55 +218,66 @@
     <script src="js/litegraph-editor.js"></script>
     <script src="js/defaults.js"></script>
 
+    <!-- JavaScript to update Date and Time -->
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            const timeString = now.toLocaleTimeString('en-US', options);
+            const dateString = now.toLocaleDateString('en-US');
+
+            const dateTimeDisplay = document.getElementById('dateTimeDisplay');
+            dateTimeDisplay.textContent = `${dateString}, ${timeString}`;
+        }
+
+        // Update the time every second
+        setInterval(updateDateTime, 1000);
+    </script>
+
     <!-- Initialization Script to Set API Key and Bridge IP -->
     <script>
         (function() {
-            // Replace with your actual Hue Bridge IP and API key
             const hueBridgeIp = '192.168.1.39';
             const hueApiKey = 'GAlIQT79YdUS3pHqO2Plc61koIVy-D5CsG6nBZ2w';
 
             if (!localStorage.getItem('bridgeIp')) {
                 localStorage.setItem('bridgeIp', hueBridgeIp);
-                console.log(`Initialization Script - Set bridgeIp to ${hueBridgeIp}`);
             }
 
             if (!localStorage.getItem('apiKey')) {
                 localStorage.setItem('apiKey', hueApiKey);
-                console.log(`Initialization Script - Set apiKey to ${hueApiKey}`);
             }
+
+            // Display the bridge IP and API key on the UI
+            document.getElementById('bridgeIP').textContent = `Bridge IP: ${localStorage.getItem('bridgeIp')}`;
+            document.getElementById('apiKey').textContent = `API Key: ${localStorage.getItem('apiKey')}`;
         })();
     </script>
 
-    <!-- Load Interfaces, Adapters, Services -->
-    <script src="src/interfaces/SmartLight.js"></script> <!-- SmartLight before HueLight -->
-    <script src="src/adapters/HueLight.js"></script>    <!-- HueLight depends on SmartLight -->
-    <script src="src/adapters/KasaLight.js"></script>    <!-- KasaLight depends on SmartLight -->
-    <script src="src/services/BaseDeviceManager.js"></script> <!-- BaseDeviceManager before DeviceManager -->
-    <script src="src/services/DeviceManager.js"></script> <!-- DeviceManager after BaseDeviceManager -->
-    <script src="src/services/StateStore.js"></script>      <!-- StateStore can be loaded anytime -->
-
-    <!-- Load KasaDeviceManager after Adapters -->
-    <script src="src/services/KasaDeviceManager.js"></script> <!-- KasaDeviceManager after KasaLight.js -->
-
-    <!-- Load Nodes -->
-    <script src="src/nodes/HueLightControlNode.js"></script> <!-- Ensure this is only included once -->
-    <script src="src/nodes/KasaLightControlNode.js"></script> <!-- Ensure this is only included once -->
-
-    <!-- Load Existing Custom Scripts -->
+    <!-- Load Core Scripts -->
+    <script src="path/to/KasaFrontend.js"></script>
+    <script src="src/interfaces/SmartLight.js"></script>
+    <script src="src/adapters/HueLight.js"></script>
+    <script src="src/adapters/KasaLight.js"></script>
+    <script src="src/services/BaseDeviceManager.js"></script>
+    <script src="src/services/HueDeviceManager.js"></script> <!-- Ensure HueDeviceManager is loaded before CommandScheduler -->
+    <script src="src/services/CommandScheduler.js"></script>
+    <script src="src/services/DeviceManager.js"></script>
+    <script src="src/services/StateStore.js"></script>
+    <script src="src/services/SmartPlugDeviceManager.js"></script>
+    <script src="src/services/LightDeviceManager.js"></script>
+    <script src="js/KasaDeviceManager.js"></script>
+    <script src="js/KasaFrontend.js"></script>
+    <script src="src/nodes/HueLightControlNode.js"></script>
+    <script src="src/nodes/KasaLightControlNode.js"></script>
+    <script src="src/nodes/KasaPlugControlNode.js"></script>
     <script src="js/initializeGraph.js"></script>
-
 
     <!-- Load Other Custom Nodes -->
     <script src="custom_nodes/Timers/TimeOfDaySunriseSunset.js"></script>
-    <script src="custom_nodes/DeviceBus/DeviceBusNode.js"></script>
-    <script src="custom_nodes/Execution/execute_node.js"></script>
-    <script src="custom_nodes/Execution/execute_node_gv.js"></script>
-    <script src="custom_nodes/Execution/ExecuteTestNode.js"></script>
-    <script src="custom_nodes/Execution/ExecuteEventNode.js"></script>
     <script src="custom_nodes/Execution/pushbutton_node.js"></script>
-    <script src="custom_nodes/Execution/pushbutton_event_node.js"></script>
-    <script src="custom_nodes/finance/OptionRollCostCalculatorNode.js"></script>
-    <script src="custom_nodes/govee/GoveeLightControlNode.js"></script>
+    <!-- Uncomment if needed -->
+    <script src="custom_nodes/finance/TransactionTrackerNode.js"></script>>
     <script src="custom_nodes/Lighting/CC_Control_Nodes/CustomColorNode.js"></script>
     <script src="custom_nodes/Lighting/CC_Control_Nodes/HueLightGradeNode.js"></script>
     <script src="custom_nodes/Lighting/CC_Control_Nodes/CustomMultiplierNode.js"></script>
@@ -217,27 +285,86 @@
     <script src="custom_nodes/Lighting/CC_Control_Nodes/hsv_control_node.js"></script>
     <script src="custom_nodes/Lighting/CC_Control_Nodes/OffsetValueNode.js"></script>
     <script src="custom_nodes/Lighting/Hue/HueLightLUTNode.js"></script>
-    <script src="custom_nodes/Lighting/Hue/HueLightNodePlus.js"></script>
-    <script src="custom_nodes/Lighting/Utility_Nodes/MergeLightNode.js"></script>
+    <script src="custom_nodes/Lighting/DateBasedColorSchemeNode.js"></script>
+    <script src="custom_nodes/Timers/ConditionalLogicNode.js"></script>
     <script src="custom_nodes/Timers/DaysOfTheWeekNode.js"></script>
-    <script src="custom_nodes/Timers/TriggerBusTestNode.js"></script>
     <script src="custom_nodes/Timers/SimpleTimerTriggerNode.js"></script>
+    <script src="custom_nodes/Timers/secondary-timer.js"></script>
     <script src="custom_nodes/Timers/TimeOfDayNode.js"></script>
-    <script src="custom_nodes/Timers/TriggerBusNode.js"></script>
     <script src="custom_nodes/Timers/TimeTriggerNode.js"></script>
-    <script src="custom_nodes/Test/BasicReceiverNode.js"></script>
+    <script src="custom_nodes/Timers/trigger-funnel.js"></script>
+    <!-- Uncomment if needed -->
+    <!-- <script src="custom_nodes/Test/OrganizedControlNode.js"></script> -->
     <script src="custom_nodes/Test/BasicSenderNode.js"></script>
-    <script src="custom_nodes/Utility/LoggerNode.js"></script>
-    <script src="custom_nodes/Utility/PassThroughNode.js"></script>
-    <script src="custom_nodes/Utility/APICallTrackerNode.js"></script>
+
+    <!-- Command Queue Functionality -->
+    <script>
+        // Ensure that CommandScheduler is loaded
+        if (window.CommandScheduler && typeof window.CommandScheduler.clearCommandQueue === 'function') {
+            // Clear the command queue
+            function clearCommandQueue() {
+                console.log("Clearing command queue...");
+                window.CommandScheduler.clearCommandQueue(); // Use the CommandScheduler's method
+                updateCommandQueue(null, 0); // Clear the UI
+            }
+
+            // Function to update the command queue display
+            function updateCommandQueue(nextCommand, timeUntilExecution) {
+                console.log("Updating Command Queue: ", nextCommand, timeUntilExecution);
+                const commandQueueElement = document.getElementById('next-command');
+                const timeElement = document.getElementById('time-until-next');
+
+                commandQueueElement.textContent = nextCommand || "No upcoming commands";
+
+                if (timeUntilExecution > 0) {
+                    const hours = Math.floor(timeUntilExecution / 3600);
+                    const minutes = Math.floor((timeUntilExecution % 3600) / 60);
+                    const seconds = Math.floor((timeUntilExecution % 60));  // Ensure to floor the seconds
+
+                    timeElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    timeElement.textContent = "00:00:00";  // Display zeros for immediate executions
+                }
+            }
+
+            // Function to schedule commands, with logging
+            function scheduleNextCommand(command, executionTimeInSeconds) {
+                const now = Math.floor(new Date().getTime() / 1000);  // Current time in seconds
+
+                // Skip scheduling if no valid command or if execution time is in the past
+                if (!command || executionTimeInSeconds <= now) {
+                    console.warn("Invalid command or execution time in the past. Skipping scheduling.");
+                    return;
+                }
+
+                const timeUntilExecution = executionTimeInSeconds - now;
+                console.log(`Scheduling next command: ${command} to execute in ${timeUntilExecution} seconds`);
+
+                updateCommandQueue(command, timeUntilExecution);
+
+                // Schedule the command using CommandScheduler
+                window.CommandScheduler.scheduleNextCommand(command, executionTimeInSeconds);
+            }
+
+            // Initialize the command queue
+            console.log("Before calling scheduleNextCommand"); // Log before the function call
+            clearCommandQueue();  // Call clearCommandQueue to ensure it's clean
+            console.log("After clearing command queue");
+
+            // Example of scheduling (commented out to prevent unexpected behavior)
+            // scheduleNextCommand("Turn on light", Math.floor(new Date().getTime() / 1000) + 10);
+
+            console.log("After calling scheduleNextCommand"); // Log after the function call
+        } else {
+            console.error("CommandScheduler is not defined. Ensure CommandScheduler.js is loaded correctly.");
+        }
+    </script>
 
     <!-- Main Initialization Script -->
     <script>
-        // Wait for all scripts and the DOM to load before initializing
         window.addEventListener('load', function() {
             console.log("All scripts loaded. Initializing event listeners...");
 
-            // Check if fetchLightsButton exists before adding event listener
             const fetchLightsButton = document.getElementById("fetchLightsButton");
             if (fetchLightsButton) {
                 fetchLightsButton.addEventListener("click", fetchLights);
@@ -246,7 +373,6 @@
                 console.error("fetchLightsButton not found!");
             }
 
-            // Check if refreshLightStateButton exists before adding event listener
             const refreshLightStateButton = document.getElementById("refreshLightStateButton");
             if (refreshLightStateButton) {
                 refreshLightStateButton.addEventListener("click", debounce(fetchLightState, 300));
@@ -255,13 +381,20 @@
                 console.error("refreshLightStateButton not found!");
             }
 
-            // Add event listeners for save and load graph buttons
             const saveGraphBtn = document.getElementById("saveGraphBtn");
             if (saveGraphBtn) {
                 saveGraphBtn.addEventListener("click", saveGraph);
                 console.log("Event listener added to saveGraphBtn");
             } else {
                 console.error("saveGraphBtn not found!");
+            }
+
+            const saveGraphAsBtn = document.getElementById("saveGraphAsBtn"); // New Button
+            if (saveGraphAsBtn) {
+                saveGraphAsBtn.addEventListener("click", saveGraphAs);
+                console.log("Event listener added to saveGraphAsBtn");
+            } else {
+                console.error("saveGraphAsBtn not found!");
             }
 
             const loadGraphBtn = document.getElementById("loadGraphBtn");
@@ -283,7 +416,6 @@
                 console.error("fileInput not found!");
             }
 
-            // Add event listeners for other buttons
             const fetchGlobalsButton = document.getElementById("fetchGlobalsButton");
             if (fetchGlobalsButton) {
                 fetchGlobalsButton.addEventListener("click", fetchGlobals);
@@ -297,7 +429,7 @@
                 showAllLogsButton.addEventListener("click", function() {
                     const logPanel = document.getElementById("log-panel");
                     for (let log of logPanel.children) {
-                        log.style.display = "block";  // Make all logs visible
+                        log.style.display = "block";
                     }
                     console.log("All logs are now visible.");
                 });
@@ -317,20 +449,17 @@
             };
         }
 
-        // Load the bridge IP and API key from localStorage (or use default values)
         const bridgeIP = localStorage.getItem('bridgeIp') || '192.168.1.39';
         const apiKey = localStorage.getItem('apiKey') || 'GAlIQT79YdUS3pHqO2Plc61koIVy-D5CsG6nBZ2w';
 
-        // Display bridge IP and API key (for debugging purposes)
         document.getElementById('bridgeIP').textContent = `Bridge IP: ${bridgeIP}`;
         document.getElementById('apiKey').textContent = `API Key: ${apiKey}`;
 
-        // Fetch the available lights from the API
         async function fetchLights() {
             try {
                 const response = await fetch(`http://${bridgeIP}/api/${apiKey}/lights`);
                 const data = await response.json();
-                populateLightDropdown(data);  // Populate the light dropdown with received data
+                populateLightDropdown(data);
                 logEvent("Fetched lights successfully.");
             } catch (error) {
                 console.error('Error fetching lights:', error);
@@ -338,22 +467,20 @@
             }
         }
 
-        // Populate the light selection dropdown
         function populateLightDropdown(data) {
             const lightDropdown = document.getElementById('lightDropdown');
-            lightDropdown.innerHTML = '';  // Clear the dropdown
+            lightDropdown.innerHTML = '';
             for (const [id, light] of Object.entries(data)) {
                 const option = document.createElement('option');
                 option.value = id;
                 option.text = light.name;
                 lightDropdown.appendChild(option);
             }
-            lightDropdown.addEventListener('change', fetchLightState);  // Add listener to fetch the selected light's state
-            fetchLightState();  // Fetch the state of the first light
+            lightDropdown.addEventListener('change', fetchLightState);
+            fetchLightState();
             logEvent("Populated light dropdown.");
         }
 
-        // Fetch the state of the selected light
         async function fetchLightState() {
             const selectedLightId = document.getElementById('lightDropdown').value;
             try {
@@ -370,25 +497,21 @@
             }
         }
 
-        // Convert XY color values to RGB
         function convertXYtoRGB(x, y, brightness) {
             let z = 1.0 - x - y;
             let Y = brightness / 255.0;
             let X = (Y / y) * x;
             let Z = (Y / y) * z;
 
-            // Convert to RGB using the CIE color space
             let r = X * 1.656492 - Y * 0.354851 - Z * 0.255038;
             let g = -X * 0.707196 + Y * 1.655397 + Z * 0.036152;
             let b = X * 0.051713 - Y * 0.121364 + Z * 1.011530;
 
-            // Apply gamma correction
             const applyGamma = (color) => color <= 0.0031308 ? 12.92 * color : 1.055 * Math.pow(color, 1.0 / 2.4) - 0.055;
             r = applyGamma(r);
             g = applyGamma(g);
             b = applyGamma(b);
 
-            // Clamp and convert to 0-255
             r = Math.round(Math.max(0, Math.min(1, r)) * 255);
             g = Math.round(Math.max(0, Math.min(1, g)) * 255);
             b = Math.round(Math.max(0, Math.min(1, b)) * 255);
@@ -396,7 +519,6 @@
             return [r, g, b];
         }
 
-        // Save the graph state to a JSON file
         function saveGraph() {
             try {
                 const graphData = JSON.stringify(graph.serialize());
@@ -416,7 +538,45 @@
             }
         }
 
-        // Load the graph from a file
+        function saveGraphAs() { // New Function
+            try {
+                // Prompt the user for a filename
+                let filename = prompt("Enter filename for the graph:", `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+
+                // If the user cancels the prompt or enters an empty filename, abort the save operation
+                if (filename === null) {
+                    console.log("Save Graph As operation canceled by the user.");
+                    return;
+                }
+                filename = filename.trim();
+                if (filename === "") {
+                    alert("Filename cannot be empty. Please try again.");
+                    return;
+                }
+
+                // Ensure the filename ends with .json
+                if (!filename.toLowerCase().endsWith('.json')) {
+                    filename += '.json';
+                }
+
+                const graphData = JSON.stringify(graph.serialize(), null, 2); // Pretty-print JSON for readability
+                const blob = new Blob([graphData], { type: 'application/json' });
+
+                // Create a temporary <a> element to trigger the download
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                logEvent(`Graph saved successfully as ${filename}.`);
+            } catch (error) {
+                console.error("Error in Save Graph As:", error);
+                logEvent(`Error in Save Graph As: ${error}`, "error");
+            }
+        }
+
         function loadGraphFromFile(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -434,13 +594,11 @@
             reader.readAsText(file);
         }
 
-        // Log messages in the log panel
         function logEvent(message, type = "general") {
             const logPanel = document.getElementById("log-panel");
             const logEntry = document.createElement("div");
             logEntry.textContent = message;
 
-            // Apply different colors based on the log type
             if (type === "error") {
                 logEntry.style.color = "red";
             } else if (type === "warning") {
@@ -449,18 +607,15 @@
                 logEntry.style.color = "white";
             }
 
-            // Limit log entries to 100 lines
             if (logPanel.children.length > 100) {
                 logPanel.removeChild(logPanel.firstChild);
             }
 
             logPanel.appendChild(logEntry);
-            logPanel.scrollTop = logPanel.scrollHeight;  // Auto-scroll to the bottom
+            logPanel.scrollTop = logPanel.scrollHeight;
         }
 
-        // Fetch globals function (Placeholder - implement as needed)
         function fetchGlobals() {
-            // Implement your fetchGlobals logic here
             console.log("Fetch Globals button clicked.");
             logEvent("Fetch Globals button clicked.");
         }

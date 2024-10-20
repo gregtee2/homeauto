@@ -1,5 +1,3 @@
-// File: src/nodes/HSVControlNode.js
-
 class HSVControlNode extends LiteGraph.LGraphNode {
     constructor() {
         super();
@@ -40,6 +38,9 @@ class HSVControlNode extends LiteGraph.LGraphNode {
             this.properties.enableCommand = value;
         });
 
+        // Add Trigger input
+        this.addInput("Trigger", LiteGraph.ACTION);
+
         // Output widget
         this.addOutput("HSV Info", "hsv_info");
 
@@ -56,7 +57,6 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         ];
     }
 
-    // Use debounce for API updates but allow instant visual updates
     debounceStoreAndSendHSV() {
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
@@ -77,8 +77,14 @@ class HSVControlNode extends LiteGraph.LGraphNode {
 
         this.properties.lastHsvInfo = hsvInfo;
 
-        if (!this.properties.enableCommand) {
-            this.setOutputData(0, hsvInfo);
+        // Always output HSV Info when storeAndSendHSV is called
+        this.setOutputData(0, hsvInfo);
+    }
+
+    onAction(action, param) {
+        if (action === "Trigger") {
+            // Output current HSV Info immediately
+            this.storeAndSendHSV();
         }
     }
 
@@ -96,7 +102,6 @@ class HSVControlNode extends LiteGraph.LGraphNode {
         }
     }
 
-    // Use memoization to optimize the hsvToRgb function
     hsvToRgb(h, s, v) {
         const key = `${h}-${s}-${v}`;
         if (this.memoizedHSVToRGB[key]) {
@@ -122,6 +127,10 @@ class HSVControlNode extends LiteGraph.LGraphNode {
     }
 
     drawColorBoxes(ctx) {
+        if (this.flags.collapsed) {
+            return; // Don't draw the color boxes if the node is collapsed
+        }
+
         const boxSize = 40;
         const margin = 10;
         const startX = 10;
@@ -143,6 +152,10 @@ class HSVControlNode extends LiteGraph.LGraphNode {
     }
 
     onDrawForeground(ctx) {
+        if (this.flags.collapsed) {
+            return; // Skip drawing foreground if the node is collapsed
+        }
+
         this.drawColorBoxes(ctx);
 
         const swatchHeight = 20;
@@ -151,6 +164,10 @@ class HSVControlNode extends LiteGraph.LGraphNode {
     }
 
     onMouseDown(event, localPos, graphCanvas) {
+        if (this.flags.collapsed) {
+            return; // Skip interaction if the node is collapsed
+        }
+
         const boxSize = 40;
         const margin = 10;
         const startX = 10;
@@ -186,7 +203,6 @@ class HSVControlNode extends LiteGraph.LGraphNode {
             this.sliders.brightness.value = this.properties.brightness;
         }
 
-        // Request a redraw of the node UI
         this.setDirtyCanvas(true);
 
         this.updateColorSwatch(); // Immediate visual update
