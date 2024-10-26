@@ -1,0 +1,177 @@
+<!-- /backend/frontend/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- ... existing head content ... -->
+</head>
+<body>
+    <h1>Smart Lighting Dashboard</h1>
+    <div id="devices-container"></div>
+
+    <script>
+        async function fetchDevices() {
+            try {
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayDevices(data.devices);
+                } else {
+                    console.error('Failed to fetch devices:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching devices:', error);
+            }
+        }
+
+        function displayDevices(devices) {
+            const container = document.getElementById('devices-container');
+            container.innerHTML = ''; // Clear existing devices
+
+            // Display Hue Devices
+            const hueSection = document.createElement('div');
+            hueSection.innerHTML = '<h2>Philips Hue Devices</h2>';
+            if (devices.hue.length === 0) {
+                hueSection.innerHTML += '<p>No Hue devices found.</p>';
+            } else {
+                devices.hue.forEach(light => {
+                    const deviceDiv = document.createElement('div');
+                    deviceDiv.className = 'device';
+                    deviceDiv.innerHTML = `
+                        <h3>${light.name} (Hue)</h3>
+                        <p>Type: ${light.type}</p>
+                        <p>State: ${light.state.on ? 'On' : 'Off'}</p>
+                        <p>Brightness: ${light.state.brightness}</p>
+                        <p>Hue: ${light.state.hue}</p>
+                        <p>Saturation: ${light.state.saturation}</p>
+                        <div class="controls">
+                            <button onclick="toggleDevice('hue', '${light.name}')">${light.state.on ? 'Turn Off' : 'Turn On'}</button>
+                            <button onclick="setBrightness('hue', '${light.name}')">Set Brightness</button>
+                            <button onclick="setColor('hue', '${light.name}')">Set Color</button>
+                        </div>
+                    `;
+                    hueSection.appendChild(deviceDiv);
+                });
+            }
+            container.appendChild(hueSection);
+
+            // Display Kasa Devices
+            const kasaSection = document.createElement('div');
+            kasaSection.innerHTML = '<h2>TP-Link Kasa Devices</h2>';
+            if (devices.kasa.length === 0) {
+                kasaSection.innerHTML += '<p>No Kasa devices found.</p>';
+            } else {
+                devices.kasa.forEach(light => {
+                    const deviceDiv = document.createElement('div');
+                    deviceDiv.className = 'device';
+                    deviceDiv.innerHTML = `
+                        <h3>${light.alias} (Kasa)</h3>
+                        <p>Type: ${light.type}</p>
+                        <div class="controls">
+                            <button onclick="toggleDevice('kasa', '${light.alias}')">Toggle On/Off</button>
+                            <button onclick="setBrightness('kasa', '${light.alias}')">Set Brightness</button>
+                            <button onclick="setColor('kasa', '${light.alias}')">Set Color</button>
+                        </div>
+                    `;
+                    kasaSection.appendChild(deviceDiv);
+                });
+            }
+            container.appendChild(kasaSection);
+        }
+
+        async function toggleDevice(brand, id) {
+            try {
+                const action = 'toggle'; // Assuming 'toggle' action is implemented
+
+                const response = await fetch(`/api/lights/${brand}/${encodeURIComponent(id)}/${action}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`Device ${id} toggled successfully.`);
+                    fetchDevices(); // Refresh the device list
+                } else {
+                    console.error(`Failed to toggle device ${id}:`, data.error);
+                }
+            } catch (error) {
+                console.error(`Error toggling device ${id}:`, error);
+            }
+        }
+
+        async function setBrightness(brand, id) {
+            const brightness = prompt('Enter brightness value (1-100):');
+            if (brightness === null) return; // User cancelled
+
+            const brightnessValue = parseInt(brightness, 10);
+            if (isNaN(brightnessValue) || brightnessValue < 1 || brightnessValue > 100) {
+                alert('Invalid brightness value. Please enter a number between 1 and 100.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/lights/${brand}/${encodeURIComponent(id)}/brightness`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brightness: brightnessValue })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`Brightness of device ${id} set to ${brightnessValue}.`);
+                    fetchDevices(); // Refresh the device list
+                } else {
+                    console.error(`Failed to set brightness for device ${id}:`, data.error);
+                }
+            } catch (error) {
+                console.error(`Error setting brightness for device ${id}:`, error);
+            }
+        }
+
+        async function setColor(brand, id) {
+            const hue = prompt('Enter hue value (0-360):');
+            const saturation = prompt('Enter saturation value (0-100):');
+            const brightness = prompt('Enter brightness value (0-100):');
+
+            if ([hue, saturation, brightness].some(val => val === null)) return; // User cancelled
+
+            const hueValue = parseInt(hue, 10);
+            const saturationValue = parseInt(saturation, 10);
+            const brightnessValue = parseInt(brightness, 10);
+
+            if (
+                isNaN(hueValue) || hueValue < 0 || hueValue > 360 ||
+                isNaN(saturationValue) || saturationValue < 0 || saturationValue > 100 ||
+                isNaN(brightnessValue) || brightnessValue < 0 || brightnessValue > 100
+            ) {
+                alert('Invalid HSV values. Please enter numbers within the specified ranges.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/lights/${brand}/${encodeURIComponent(id)}/color`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hsv: { hue: hueValue, saturation: saturationValue, brightness: brightnessValue } })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log(`Color of device ${id} set successfully.`);
+                    fetchDevices(); // Refresh the device list
+                } else {
+                    console.error(`Failed to set color for device ${id}:`, data.error);
+                }
+            } catch (error) {
+                console.error(`Error setting color for device ${id}:`, error);
+            }
+        }
+
+        // Fetch devices on page load
+        window.onload = fetchDevices;
+    </script>
+</body>
+</html>

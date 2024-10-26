@@ -1,0 +1,15 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Frontend for home automation",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server -c-1 -p 8080"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io-client": "^4.8.0",
+    "toastr": "^2.1.4"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "homeauto",
+  "version": "1.0.0",
+  "description": "Home Automation Project",
+  "main": "index.js",
+  "scripts": {
+    "start:frontend": "cd frontend && npm start",
+    "start:backend": "cd backend && node src/server.js",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\""
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "dependencies": {
+    "node-hue-api": "^3.4.1"
+  }
+}

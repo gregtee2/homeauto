@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kasa Control Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiteGraph Example Integration</title>
+
+    <!-- Link to LiteGraph CSS styles -->
+    <link rel="stylesheet" type="text/css" href="css/litegraph.css">
+    <link rel="stylesheet" type="text/css" href="css/litegraph-editor.css">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+
+    <style>
+        /* Set up a fullscreen layout with no margins or scrollbars */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Main container styling */
+        #main {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Date and time display styling */
+        #dateTimeDisplay {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            color: lightgray;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            font-family: Arial, sans-serif;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Light list container, hidden initially */
+        #lightList {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            width: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            z-index: 5;
+        }
+
+        /* Control buttons styling */
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Individual button styling */
+        #controls button {
+            padding: 10px;
+            background-color: #85858570;
+            color: #788b97;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* Button hover styling */
+        #controls button:hover {
+            background-color: #4f473a;
+        }
+
+        /* Hidden file input */
+        #fileInput {
+            display: none;
+        }
+
+        /* Log panel styling, located at the bottom */
+        #log-panel {
+            width: 100%;
+            height: 200px;
+            overflow-y: scroll;
+            background-color: black;
+            color: gray;
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-family: monospace;
+            position: absolute;
+            bottom: 0;
+            z-index: 10;
+            user-select: text !important;
+        }
+
+        /* Light state and selector styling */
+        #lightState, #lightSelector {
+            position: absolute;
+            bottom: 320px;
+            left: 10px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 5;
+        }
+
+        #lightSelector {
+            bottom: 270px;
+        }
+
+        /* Command Queue styling */
+        #commandQueueStatus {
+            position: absolute;
+            bottom: 240px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: lightgray;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            z-index: 10;
+        }
+
+        /* Ensure the graph canvas occupies the full available space */
+        #graphcanvas {
+            width: 100%;
+            height: 100%;
+            display: block; /* Removes inline spacing */
+        }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <!-- Date and Time Display -->
+        <div id="dateTimeDisplay"></div>
+
+        <!-- Canvas where LiteGraph will be rendered -->
+        <canvas id="graphcanvas"></canvas>
+
+        <!-- Container for light list -->
+        <div id="lightList"></div>
+
+        <!-- Controls for saving, loading, and interacting with the graph -->
+        <div id="controls">
+            <button id="saveGraphBtn">Save Graph</button>
+            <button id="saveGraphAsBtn">Save Graph As</button> <!-- New Button Added -->
+            <button id="loadGraphBtn">Load Graph</button>
+        </div>
+
+        <!-- Hidden file input for loading graphs -->
+        <input type="file" id="fileInput" accept=".json" />
+    </div>
+
+    <!-- Log panel to display messages -->
+    <div id="log-panel"></div>
+
+    <!-- Load Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <!-- Include LiteGraph Library -->
+    <script src="js/litegraph.js"></script>
+    <!-- Include LiteGraph Editor Scripts -->
+    <script src="js/litegraph-editor.js"></script>
+    <!-- Include Your Custom Scripts -->
+    <script src="js/custom.js"></script> //<---- this has to load before initializeGraph.js
+
+    <!-- Include Your Custom Scripts as Modules -->
+    <script type="module" src="js/custom.js"></script>
+
+    <!-- Load Core Scripts as Modules (if necessary) -->
+    <script type="module" src="js/initializeGraph.js"></script>
+
+
+
+
+    <!-- JavaScript to update Date and Time -->
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            const timeString = now.toLocaleTimeString('en-US', options);
+            const dateString = now.toLocaleDateString('en-US');
+
+            const dateTimeDisplay = document.getElementById('dateTimeDisplay');
+            dateTimeDisplay.textContent = `${dateString}, ${timeString}`;
+        }
+
+        // Update the time every second
+        setInterval(updateDateTime, 1000);
+    </script>
+
+    <!-- Load Core Scripts -->
+    <script src="js/initializeGraph.js"></script>
+
+    <!-- Main Initialization Script -->
+    <script>
+        // Declare graph globally
+        let graph;
+        let graphCanvas;
+
+        window.addEventListener('load', function() {
+            console.log("All scripts loaded. Initializing event listeners and graph...");
+
+            // Initialize the graph
+            const canvas = document.getElementById("graphcanvas");
+            if (canvas) {
+                graph = new LGraph();
+                graphCanvas = new LGraphCanvas(canvas, graph);
+                
+                // Optional: Customize graph appearance
+                graphCanvas.background_color = "#1e1e1e"; // Match background color
+
+                // Handle window resize to adjust the canvas
+                function resizeCanvas() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    graphCanvas.resize();
+                }
+
+                // Initial resize
+                resizeCanvas();
+
+                // Add event listener for window resize
+                window.addEventListener('resize', resizeCanvas);
+
+                // Example: Add a default node
+                /*
+                const timerNode = LiteGraph.createNode("custom/TimerNode");
+                timerNode.pos = [200, 200];
+                graph.add(timerNode);
+                */
+
+                // Start the graph
+                graph.start();
+            } else {
+                console.error("graphcanvas element not found");
+            }
+
+            // Initialize event listeners for controls
+            const saveGraphBtn = document.getElementById("saveGraphBtn");
+            if (saveGraphBtn) {
+                saveGraphBtn.addEventListener("click", saveGraph);
+                console.log("Event listener added to saveGraphBtn");
+            } else {
+                console.error("saveGraphBtn not found!");
+            }
+
+            const saveGraphAsBtn = document.getElementById("saveGraphAsBtn"); // New Button
+            if (saveGraphAsBtn) {
+                saveGraphAsBtn.addEventListener("click", saveGraphAs);
+                console.log("Event listener added to saveGraphAsBtn");
+            } else {
+                console.error("saveGraphAsBtn not found!");
+            }
+
+            const loadGraphBtn = document.getElementById("loadGraphBtn");
+            if (loadGraphBtn) {
+                loadGraphBtn.addEventListener("click", () => document.getElementById('fileInput').click());
+                console.log("Event listener added to loadGraphBtn");
+            } else {
+                console.error("loadGraphBtn not found!");
+            }
+
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(event) {
+                    const file = event.target.files[0];
+                    if (file) loadGraphFromFile(file);
+                });
+                console.log("Event listener added to fileInput");
+            } else {
+                console.error("fileInput not found!");
+            }
+        });
+
+        function saveGraph() {
+            try {
+                const graphData = JSON.stringify(graph.serialize());
+                const blob = new Blob([graphData], { type: 'application/json' });
+                const defaultFilename = `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = defaultFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                logEvent("Graph saved successfully.");
+            } catch (error) {
+                console.error("Error saving graph:", error);
+                logEvent(`Error saving graph: ${error}`, "error");
+            }
+        }
+
+        function saveGraphAs() { // New Function
+            try {
+                let filename = prompt("Enter filename for the graph:", `graph_${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+                if (filename === null || filename.trim() === "") {
+                    alert("Filename cannot be empty.");
+                    return;
+                }
+                if (!filename.toLowerCase().endsWith('.json')) {
+                    filename += '.json';
+                }
+
+                const graphData = JSON.stringify(graph.serialize(), null, 2); // Pretty-print JSON for readability
+                const blob = new Blob([graphData], { type: 'application/json' });
+
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                logEvent(`Graph saved successfully as ${filename}.`);
+            } catch (error) {
+                console.error("Error in Save Graph As:", error);
+                logEvent(`Error in Save Graph As: ${error}`, "error");
+            }
+        }
+
+        function loadGraphFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const graphData = e.target.result;
+                try {
+                    graph.clear();
+                    graph.configure(JSON.parse(graphData));
+                    console.log("Graph loaded successfully from file");
+                    logEvent("Graph loaded successfully from file.");
+                } catch (err) {
+                    console.error("Error loading graph from file:", err);
+                    logEvent(`Error loading graph from file: ${err}`, "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function logEvent(message, type = "general") {
+            const logPanel = document.getElementById("log-panel");
+            const logEntry = document.createElement("div");
+            logEntry.textContent = message;
+
+            logEntry.style.color = type === "error" ? "red" : (type === "warning" ? "yellow" : "white");
+
+            if (logPanel.children.length > 100) {
+                logPanel.removeChild(logPanel.firstChild);
+            }
+
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        function fetchGlobals() {
+            console.log("Fetch Globals button clicked.");
+            logEvent("Fetch Globals button clicked.");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lightgraph UI</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/litegraph.css">
+    <link rel="stylesheet" href="css/litegraph-editor.css">
+</head>
+<body>
+    <div id="litegraph-container" style="width: 100%; height: 100vh;"></div>
+
+    <!-- Include LiteGraph Library -->
+    <script src="js/litegraph.js"></script>
+    <!-- Include LiteGraph Editor Scripts -->
+    <script src="js/litegraph-editor.js"></script>
+    <!-- Include Your Custom Scripts -->
+    <script src="js/custom.js"></script>
+</body>
+</html>
